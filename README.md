@@ -5,7 +5,7 @@
 
 ## Project Description
 
-MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The application will allow users to browse movies, submit reviews and ratings, and manage movie/genre data through an administrative interface.
+MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies abd manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
 
 ## Technology Stack
 
@@ -13,8 +13,9 @@ MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing mo
 | --- | --- | --- | --- |
 | Framework | ASP.NET Core MVC (.NET 10) | Web application framework | In use |
 | Programming language | C# | Application programming language | In use |
-| Data access | Entity Framework Core | Database access and persistence | Planned |
-| Database | SQL Server / LocalDB | Relational database storage | Planned |
+| Data access | Entity Framework Core | Database access and persistence | In use |
+| Database | SQL Server / LocalDB | Relational database storage | In use (migration generated, not yet applied) |
+| Authentication | ASP.NET Core Identity | User accounts, login/register, role-based access | In use |
 | View technology | Razor Views (`.cshtml`) | Server-rendered user interface | In use |
 | Front end | HTML5 / CSS3 / JavaScript | Front-end structure, styling, and behavior | In use |
 | UI library | Bootstrap | Responsive UI components and layout | In use |
@@ -32,20 +33,22 @@ dotnet build
 # Run the application
 dotnet run --project MoviesAdmin
 
-# Add Entity Framework Core packages (placeholder)
-dotnet add package Microsoft.EntityFrameworkCore.SqlServer
-dotnet add package Microsoft.EntityFrameworkCore.Tools
+# Restore the local dotnet-ef tool (see dotnet-tools.json)
+dotnet tool restore
 
-# Add / update database migrations (placeholder)
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+# Apply the existing migration to create/update the database
+dotnet ef database update --project MoviesAdmin
+
+# Add a new migration after model changes
+dotnet ef migrations add <MigrationName> --project MoviesAdmin
 ```
 
-## Code First / Database First — Placeholder
+## Code First / Database First
 
-- **Approach:** TBD (Code First vs. Database First)
-- **ETL / Schema:** Placeholder — schema definitions and seed data to be added as models are finalized
-- **Repository / Dependency Injection Pattern:** Placeholder — repository interfaces and service registrations to be implemented (e.g., `IMovieRepository`, `IReviewRepository` registered in `Program.cs`)
+- **Approach:** Code First — models drive the schema via EF Core migrations
+- **Schema:** `InitialMoviesReviewsSchema` migration covers ASP.NET Core Identity tables plus `Movie`, `Genre`, `MovieGenre` (many-to-many join), and `Review`, with Fluent API config for cascade/restrict deletes and a unique index on genre name. Generated but not yet applied to a database — update `DefaultConnection` in `appsettings.json` and run `dotnet ef database update` to apply it.
+- **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`, all registered in `Program.cs`
+- **Authentication:** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Register/Logout/AccessDenied) and matching views/view models; admin navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Reviews links with auth-aware login/logout controls
 
 ## Current Core, Enhancing, and Enabling Features
 
@@ -55,10 +58,10 @@ dotnet ef database update
 | --- | --- | --- |
 | Core | Movie listing / browse page | Planned |
 | Core | Movie detail page | Planned |
-| Core | User-submitted reviews and ratings | Planned |
+| Core | User-submitted reviews and ratings | Schema in place; UI planned |
 | Enhancing | Search and filter by genre, rating, or release year | Planned |
 | Enhancing | Sorting by rating, popularity, or release date | Planned |
-| Enhancing | User authentication and profile management | Planned |
-| Enabling | Admin dashboard for managing movies, genres, and reviews | Planned |
-| Enabling | Database persistence via Entity Framework | Planned |
-| Enabling | Responsive UI layout for desktop and mobile | Planned |
+| Enhancing | User authentication and profile management | In use (login/register/logout, role-ready via Identity) |
+| Enabling | Admin dashboard for managing movies, genres, and reviews | Navbar wired up; pages planned |
+| Enabling | Database persistence via Entity Framework | Models, repositories, and migration in place; migration not yet applied |
+| Enabling | Responsive UI layout for desktop and mobile | In use |
