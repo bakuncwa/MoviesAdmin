@@ -1,5 +1,12 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
+    int count = 10;
+    string message = "Placeholder";
+    string name = "Admin";
+    var model = new List<string>();
+        model.Add("Movie 1");
+        model.Add("Movie 2"); 
+        model.Add("Movie 3");
 }
 
 @* <div class="text-center">
@@ -7,12 +14,21 @@
     <p>Movies Administration Management Portal.</p>
 </div> *@
 
-
-@{
-    // Razor Syntax
-    string message = "Placeholder"; 
-}
+<div class="text-center">
+    @name. @message
+</div>
 
 <div class="text-center">
-    @message
+    @if(count > 5){
+        <p>Count is greater than 5</p>
+    }
+    else{
+        <p>Count is 5 or less</p>
+    }
+</div>
+
+<div class="text-center">
+    @foreach(string item in model){
+        <ul><li>@item</li></ul>
+    }
 </div>
