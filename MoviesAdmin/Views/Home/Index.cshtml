@@ -29,6 +29,12 @@
 
 <div class="text-center">
     @foreach(string item in model){
-        <ul><li>@item</li></ul>
+        // If item == "Movie 3", format to bold when iterating through if-statement
+        if(item == "Movie 3"){
+            <ul><li><strong>@item</strong></li></ul>
+        }
+        else{
+            <ul><li>@item</li></ul>
+        }
     }
 </div>
