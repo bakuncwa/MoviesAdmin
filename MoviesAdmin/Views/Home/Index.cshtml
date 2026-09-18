@@ -1,12 +1,38 @@
-﻿@{
+﻿@using System.ComponentModel.DataAnnotations
+@using MoviesAdmin.Models
+@{
     ViewData["Title"] = "Home Page";
     int count = 10;
     string message = "Placeholder";
     string name = "Admin";
+
     var model = new List<string>();
-        model.Add("Movie 1");
-        model.Add("Movie 2"); 
-        model.Add("Movie 3");
+    model.Add("Movie 1");
+    model.Add("Movie 2"); 
+    model.Add("Movie 3");
+
+    List<modelMovie> modelMovie = new List<modelMovie>();
+    /*  model1 = new modelMovie();
+    model1.Id = 1;
+    model1.Title = "Movie 1";
+    model1.Synopsis = "Synopsis for Movie 1";
+    modelMovie.Add(model1);
+    var model2 = new modelMovie();
+    model2.Id = 2;
+    model2.Title = "Movie 2";
+    model2.Synopsis = "Synopsis for Movie 2";
+    modelMovie.Add(model2);
+    var model3 = new modelMovie();
+    model3.Id = 3;
+    model3.Title = "Movie 3";
+    model3.Synopsis = "Synopsis for Movie 3";
+    modelMovie.Add(model3); */
+    new List<modelMovie> {
+        new modelMovie { Id = 1, Title = "Movie 1", Synopsis = "Synopsis for Movie 1" },
+        new modelMovie { Id = 2, Title = "Movie 2", Synopsis = "Synopsis for Movie 2" },
+        new modelMovie { Id = 3, Title = "Movie 3", Synopsis = "Synopsis for Movie 3" }
+    };
+
 }
 
 @* <div class="text-center">
@@ -38,3 +64,17 @@
         }
     }
 </div>
+
+<div class="text-center">
+    @foreach(modelMovie movie in modelMovie){
+        if(movie.Title == "Movie 3"){
+            <ul><li><strong>"@movie.Title"</strong> + "@movie.Synopsis"</li></ul>
+        }
+        else
+        {
+            <ul><li>"@movie.Title" + "@movie.Synopsis"</li></ul>
+        }
+    }
+</div> 
+
+<div><img src="~/wwwroot/img/prideprejudice.jpg" alt="Pride and Prejudice (2005)" class="img" /></div>
