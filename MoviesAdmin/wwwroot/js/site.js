@@ -2,3 +2,57 @@
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
+
+// Light/dark mode toggle. The initial theme (from localStorage, or the OS preference as a
+// light-by-default fallback) is already applied by the inline script in _Layout.cshtml's <head>
+// before this file loads, so here we only wire up the button and keep it in sync with that state.
+(() => {
+    'use strict'
+
+    const getStoredTheme = () => localStorage.getItem('theme')
+    const setStoredTheme = theme => localStorage.setItem('theme', theme)
+
+    const getPreferredTheme = () => {
+        const storedTheme = getStoredTheme()
+        if (storedTheme === 'light' || storedTheme === 'dark') {
+            return storedTheme
+        }
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+
+    const setTheme = theme => {
+        document.documentElement.setAttribute('data-bs-theme', theme)
+    }
+
+    const toggleBtn = document.getElementById('theme-toggle')
+    const sunIcon = document.getElementById('theme-icon-light')
+    const moonIcon = document.getElementById('theme-icon-dark')
+
+    const updateToggleUI = theme => {
+        const isDark = theme === 'dark'
+        sunIcon?.classList.toggle('d-none', isDark)
+        moonIcon?.classList.toggle('d-none', !isDark)
+        toggleBtn?.setAttribute('aria-pressed', String(isDark))
+        toggleBtn?.setAttribute('title', isDark ? 'Switch to light mode' : 'Switch to dark mode')
+    }
+
+    updateToggleUI(getPreferredTheme())
+
+    toggleBtn?.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-bs-theme') || getPreferredTheme()
+        const next = current === 'dark' ? 'light' : 'dark'
+        setStoredTheme(next)
+        setTheme(next)
+        updateToggleUI(next)
+    })
+
+    // Follow the OS setting live, but only while the visitor hasn't picked an explicit preference.
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (getStoredTheme() === 'light' || getStoredTheme() === 'dark') {
+            return
+        }
+        const theme = getPreferredTheme()
+        setTheme(theme)
+        updateToggleUI(theme)
+    })
+})()

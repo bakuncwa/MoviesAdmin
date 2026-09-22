@@ -21,6 +21,12 @@ namespace MoviesAdmin.Models
         [StringLength(500)]
         public string? PosterUrl { get; set; }
 
+        // Relative path (under wwwroot, e.g. "images/movies/inception.jpg") to a poster image uploaded
+        // through the admin UI. Distinct from PosterUrl, which is reserved for posters sourced from an
+        // external movie API. Views should fall back to PosterUrl when this is null.
+        [StringLength(500)]
+        public string? PosterImagePath { get; set; }
+
         public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
 
         public ICollection<Review> Reviews { get; set; } = new List<Review>();

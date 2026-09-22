@@ -9,7 +9,7 @@ html {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem var(--bs-body-bg), 0 0 0 0.25rem #258cfb;
 }
 
 html {
@@ -19,6 +19,12 @@ html {
 
 body {
   margin-bottom: 60px;
+  /* Smooths the light/dark switch from the theme toggle instead of an abrupt color snap. */
+  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+}
+
+#theme-toggle {
+  line-height: 1;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
