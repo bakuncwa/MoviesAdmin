@@ -16,7 +16,7 @@
             {
                 <div id="movie-trailer-slot" data-trailer-url="@Url.Action("TrailerEmbed", "Movies", new { id = Model.Id })">
                     <button type="button" class="btn btn-outline-danger btn-sm w-100 movie-trailer-btn">
-                        &#9654; Watch Trailer
+                        <i class="fa-solid fa-play me-1" aria-hidden="true"></i>Watch Trailer
                     </button>
                 </div>
             }
@@ -63,6 +63,6 @@
     </div>
 </div>
 <div class="modal-footer">
-    <button type="button" class="btn btn-outline-primary movie-edit-btn" data-id="@Model.Id">Edit</button>
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button type="button" class="btn btn-outline-primary movie-edit-btn" data-id="@Model.Id"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Close</button>
 </div>

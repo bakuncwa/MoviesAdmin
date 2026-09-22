@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MoviesAdmin</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
     <script type="importmap"></script>
     @* Applies the saved/system color mode before first paint, so the page never flashes light-then-dark (or vice versa). *@
     <script>
@@ -21,6 +22,10 @@
         })()
     </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    @* Solid style only (fontawesome.min.css base + solid.min.css glyphs) — the only style used by
+       button icons across the site, kept small rather than vendoring the full "all" bundle. *@
+    <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/solid.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MoviesAdmin.styles.css" asp-append-version="true" />
 </head>
@@ -60,17 +65,17 @@
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-flex">
-                                    <button type="submit" class="nav-link btn btn-link">Log out</button>
+                                    <button type="submit" class="nav-link btn btn-link"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Log out</button>
                                 </form>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">Log in</a>
+                                <a class="nav-link" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Register">Register</a>
+                                <a class="nav-link" asp-controller="Account" asp-action="Register"><i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>Register</a>
                             </li>
                         }
                         <li class="nav-item ms-sm-2">

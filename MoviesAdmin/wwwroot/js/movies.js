@@ -68,7 +68,7 @@
         }
 
         button.disabled = true;
-        button.textContent = 'Loading...';
+        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1" aria-hidden="true"></i>Loading...';
 
         try {
             const response = await fetch(trailerUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -79,7 +79,7 @@
         } catch (err) {
             await Swal.fire({ icon: 'error', title: 'Could not load the trailer.' });
             button.disabled = false;
-            button.innerHTML = '&#9654; Watch Trailer';
+            button.innerHTML = '<i class="fa-solid fa-play me-1" aria-hidden="true"></i>Watch Trailer';
         }
     }
 

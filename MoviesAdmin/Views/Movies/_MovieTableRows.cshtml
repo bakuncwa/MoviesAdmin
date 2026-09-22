@@ -37,8 +37,12 @@ else
             </td>
             <td class="text-end">
                 <div class="btn-group btn-group-sm" role="group" aria-label="Row actions">
-                    <button type="button" class="btn btn-outline-secondary movie-view-btn" data-id="@movie.Id" title="View details">View</button>
-                    <button type="button" class="btn btn-outline-primary movie-edit-btn" data-id="@movie.Id" title="Edit movie">Edit</button>
+                    <button type="button" class="btn btn-outline-secondary movie-view-btn" data-id="@movie.Id" title="View details">
+                        <i class="fa-solid fa-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary movie-edit-btn" data-id="@movie.Id" title="Edit movie">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                    </button>
                     <button type="button" class="btn btn-outline-danger movie-delete-btn"
                             data-id="@movie.Id"
                             data-title="@movie.Title"
@@ -47,7 +51,7 @@ else
                             data-runtime="@runtimeText"
                             data-genres="@genresText"
                             title="Delete movie">
-                        Delete
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
                     </button>
                 </div>
             </td>
