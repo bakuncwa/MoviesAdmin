@@ -1,0 +1,122 @@
+@model MoviesAdmin.ViewModels.Movies.MovieFormViewModel
+
+@* Injected into #movie-modal-content by wwwroot/js/movies.js for both Create and Edit — the two
+   only differ in whether Id/ExistingPosterImagePath/TrailerUrl/... are pre-filled and which URL
+   the form posts to. Submitted via fetch()+FormData from movies.js, not a normal browser post,
+   so validation failures (422) come back as this same partial re-rendered with error messages. *@
+
+@{
+    var isEdit = Model.IsEdit;
+    var formAction = isEdit
+        ? Url.Action("Edit", "Movies", new { id = Model.Id })
+        : Url.Action("Create", "Movies");
+}
+
+<div class="modal-header">
+    <h5 class="modal-title">@(isEdit ? "Edit Movie" : "Add Movie")</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<form id="movie-form" action="@formAction" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="ExistingPosterImagePath" />
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+        <div class="row g-4">
+            <!-- Left: image frame -->
+            <div class="col-md-4 text-center">
+                <img id="movie-form-preview" src="@Model.ExistingPosterImageUrl" alt="Poster preview"
+                     class="img-fluid rounded border mb-2" style="max-height: 260px; width: 100%; object-fit: cover;" />
+
+                <div class="mb-2 text-start">
+                    <label asp-for="PosterImageFile" class="form-label small"></label>
+                    <input asp-for="PosterImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control form-control-sm" />
+                    <span asp-validation-for="PosterImageFile" class="text-danger small"></span>
+                </div>
+                <div class="mb-2 text-start">
+                    <label asp-for="PosterUrl" class="form-label small"></label>
+                    <input asp-for="PosterUrl" class="form-control form-control-sm" placeholder="https://..." />
+                    <span asp-validation-for="PosterUrl" class="text-danger small"></span>
+                </div>
+                <div class="text-start">
+                    <label asp-for="TrailerUrl" class="form-label small"></label>
+                    <input asp-for="TrailerUrl" class="form-control form-control-sm" placeholder="https://www.youtube.com/watch?v=..." />
+                    <span asp-validation-for="TrailerUrl" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <!-- Right: movie details -->
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label"></label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Synopsis" class="form-label"></label>
+                    <textarea asp-for="Synopsis" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Synopsis" class="text-danger small"></span>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <label asp-for="ReleaseDate" class="form-label"></label>
+                        <input type="date" id="ReleaseDate" name="ReleaseDate" class="form-control" value="@Model.ReleaseDate.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="ReleaseDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label asp-for="RuntimeMinutes" class="form-label"></label>
+                        <input asp-for="RuntimeMinutes" type="number" min="1" max="1000" class="form-control" />
+                        <span asp-validation-for="RuntimeMinutes" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <label asp-for="DirectorId" class="form-label"></label>
+                        <select asp-for="DirectorId" class="form-select">
+                            <option value="">— None —</option>
+                            @foreach (var director in Model.AvailableDirectors)
+                            {
+                                <option value="@director.Id" selected="@(Model.DirectorId == director.Id)">@director.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label asp-for="StudioId" class="form-label"></label>
+                        <select asp-for="StudioId" class="form-select">
+                            <option value="">— None —</option>
+                            @foreach (var studio in Model.AvailableStudios)
+                            {
+                                <option value="@studio.Id" selected="@(Model.StudioId == studio.Id)">@studio.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <label class="form-label d-block">Genres</label>
+                    @if (Model.AvailableGenres.Count == 0)
+                    {
+                        <p class="text-body-secondary small mb-0">No genres yet.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-wrap gap-3">
+                            @foreach (var genre in Model.AvailableGenres)
+                            {
+                                var checkboxId = $"genre-{genre.Id}";
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="SelectedGenreIds" value="@genre.Id" id="@checkboxId"
+                                           checked="@(Model.SelectedGenreIds.Contains(genre.Id))" />
+                                    <label class="form-check-label" for="@checkboxId">@genre.Name</label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">@(isEdit ? "Save Changes" : "Add Movie")</button>
+    </div>
+</form>

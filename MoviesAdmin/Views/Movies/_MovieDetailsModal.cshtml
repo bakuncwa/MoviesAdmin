@@ -1,0 +1,68 @@
+@model MoviesAdmin.ViewModels.Movies.MovieDetailsViewModel
+
+@* Injected into #movie-modal-content by wwwroot/js/movies.js when a "View" button is clicked. *@
+
+<div class="modal-header">
+    <h5 class="modal-title">@Model.Title</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div class="row g-4">
+        <!-- Left: poster image, with a lazy-loaded trailer embed underneath -->
+        <div class="col-md-4 text-center">
+            <img src="@Model.DisplayImageUrl" alt="@Model.Title poster" class="img-fluid rounded border mb-2" style="max-height: 320px; width: 100%; object-fit: cover;" />
+
+            @if (Model.HasTrailer)
+            {
+                <div id="movie-trailer-slot" data-trailer-url="@Url.Action("TrailerEmbed", "Movies", new { id = Model.Id })">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 movie-trailer-btn">
+                        &#9654; Watch Trailer
+                    </button>
+                </div>
+            }
+        </div>
+
+        <!-- Right: movie details -->
+        <div class="col-md-8">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Release date</dt>
+                <dd class="col-sm-8">@Model.ReleaseDate.ToString("MMMM d, yyyy")</dd>
+
+                <dt class="col-sm-4">Runtime</dt>
+                <dd class="col-sm-8">@(Model.RuntimeMinutes.HasValue ? $"{Model.RuntimeMinutes} minutes" : "Unknown")</dd>
+
+                <dt class="col-sm-4">Director</dt>
+                <dd class="col-sm-8">@(Model.DirectorName ?? "—")</dd>
+
+                <dt class="col-sm-4">Studio</dt>
+                <dd class="col-sm-8">@(Model.StudioName ?? "—")</dd>
+
+                <dt class="col-sm-4">Genres</dt>
+                <dd class="col-sm-8">@(Model.GenreNames.Count == 0 ? "—" : string.Join(", ", Model.GenreNames))</dd>
+
+                <dt class="col-sm-4">Rating</dt>
+                <dd class="col-sm-8">
+                    @if (Model.AverageRating.HasValue)
+                    {
+                        var reviewWord = Model.ReviewCount == 1 ? "review" : "reviews";
+                        @($"{Model.AverageRating:0.0} / 5 ({Model.ReviewCount} {reviewWord})")
+                    }
+                    else
+                    {
+                        @:No reviews yet
+                    }
+                </dd>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Synopsis))
+                {
+                    <dt class="col-sm-4">Synopsis</dt>
+                    <dd class="col-sm-8">@Model.Synopsis</dd>
+                }
+            </dl>
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-primary movie-edit-btn" data-id="@Model.Id">Edit</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>

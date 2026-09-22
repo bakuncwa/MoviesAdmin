@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" role="img" aria-label="No poster available">
+  <rect width="300" height="450" fill="#adb5bd" />
+  <g fill="#f8f9fa" font-family="Segoe UI, Helvetica, Arial, sans-serif" text-anchor="middle">
+    <text x="150" y="215" font-size="22">No Poster</text>
+    <text x="150" y="245" font-size="22">Available</text>
+  </g>
+</svg>

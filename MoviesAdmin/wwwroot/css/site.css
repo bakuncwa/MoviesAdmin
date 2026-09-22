@@ -40,3 +40,21 @@ body {
     height: 20vh;
     width: auto;
 }
+
+/* Movies CRUD (Views/Movies/*, wwwroot/js/movies.js) --------------------------------------- */
+
+/* Blurs whatever's behind an open Create/Edit/View modal instead of Bootstrap's plain dim overlay. */
+.modal-backdrop.show {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Applied to a table row the moment its delete is confirmed, for the 10-second undo window in
+   movies.js: the row visibly "goes away" immediately, but stays in the DOM (and un-deleted
+   server-side) until the countdown elapses, so Undo can instantly restore it. */
+.movie-row-pending-delete {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}

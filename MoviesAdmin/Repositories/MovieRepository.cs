@@ -12,9 +12,15 @@ namespace MoviesAdmin.Repositories
 
         public async Task<Movie?> GetByIdWithDetailsAsync(int id)
         {
+            // Used by Edit/Details/Delete, so this pulls in everything a single-movie view needs.
+            // SearchAsync below stays leaner (no Director/Studio/Trailer) since the admin table
+            // doesn't display them — see MovieListItemViewModel.
             return await Set
                 .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
                 .Include(m => m.Reviews).ThenInclude(r => r.User)
+                .Include(m => m.Director)
+                .Include(m => m.Studio)
+                .Include(m => m.Trailer)
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 

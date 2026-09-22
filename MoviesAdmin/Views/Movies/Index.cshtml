@@ -1,0 +1,54 @@
+@model List<MoviesAdmin.ViewModels.Movies.MovieListItemViewModel>
+
+@{
+    ViewData["Title"] = "Movies";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h1 class="h3 mb-0">Movies</h1>
+    <button type="button" id="create-movie-btn" class="btn btn-primary">
+        <span aria-hidden="true">+</span> Add Movie
+    </button>
+</div>
+
+<div class="mb-3">
+    <label for="movie-search" class="form-label visually-hidden">Search movies</label>
+    <input type="search" id="movie-search" class="form-control" placeholder="Search movies by title..." autocomplete="off" />
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th scope="col" style="width: 64px;">Poster</th>
+                <th scope="col">Title</th>
+                <th scope="col">Release Date</th>
+                <th scope="col">Runtime</th>
+                <th scope="col">Genres</th>
+                <th scope="col">Rating</th>
+                <th scope="col" class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="movie-table-body">
+            @await Html.PartialAsync("_MovieTableRows", Model)
+        </tbody>
+    </table>
+</div>
+
+@* Shared modal shell for Create/Edit/View; its content is swapped in via AJAX by movies.js. *@
+<div class="modal fade" id="movie-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" id="movie-modal-content">
+            <!-- injected by wwwroot/js/movies.js -->
+        </div>
+    </div>
+</div>
+
+@* Antiforgery token source for the Delete fetch() call, which has no <form> of its own (Create/Edit
+   forms carry their own token inside _MovieFormModal.cshtml). *@
+<form id="antiforgery-form" class="d-none">@Html.AntiForgeryToken()</form>
+
+@section Scripts {
+    <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="~/js/movies.js" asp-append-version="true"></script>
+}

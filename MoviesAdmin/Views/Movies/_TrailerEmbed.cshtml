@@ -1,0 +1,12 @@
+@model string
+
+@* Model is the already-built https://www.youtube-nocookie.com/embed/{id} URL (see Trailer.EmbedUrl
+   in Models/Trailer.cs) — built server-side from a regex-validated video id, never raw user HTML. *@
+
+<div class="ratio ratio-16x9">
+    <iframe src="@Model"
+            title="Movie trailer"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            referrerpolicy="strict-origin-when-cross-origin"></iframe>
+</div>
