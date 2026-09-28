@@ -34,7 +34,7 @@ namespace MoviesAdmin.ViewModels.Movies
         [Display(Name = "Poster URL (external)")]
         public string? PosterUrl { get; set; }
 
-        [Display(Name = "Poster image (upload)")]
+        [Display(Name = "Poster image")]
         public IFormFile? PosterImageFile { get; set; }
 
         // Carries the already-saved image path across the round trip so a validation failure (or

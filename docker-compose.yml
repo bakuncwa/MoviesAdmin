@@ -1,0 +1,32 @@
+# Local SQL Server for MoviesAdmin (matches DefaultConnection in MoviesAdmin/appsettings.Development.json).
+#   docker compose up -d        start (waits nothing; check `docker compose ps` for "healthy")
+#   docker compose down         stop + remove the container (data survives in the named volume)
+#   docker compose down -v      ...and also delete the database volume
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    # SQL Server only ships amd64 images; pinning the platform runs it under Rosetta on Apple
+    # Silicon without the "platform does not match" warning on every start.
+    platform: linux/amd64
+    container_name: mssql_inet2005_701
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "2026MoviesAdmin"
+    ports:
+      - "1433:1433"
+    # Keeps the MoviesAdmin database across container recreation, so a `docker compose down`
+    # doesn't wipe applied migrations and data the way `docker rm` on a volume-less container does.
+    volumes:
+      - mssql-data:/var/opt/mssql
+    # Emulated startup takes ~30-60s before logins succeed; "healthy" means it's safe to run
+    # `dotnet ef database update`.
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  mssql-data:

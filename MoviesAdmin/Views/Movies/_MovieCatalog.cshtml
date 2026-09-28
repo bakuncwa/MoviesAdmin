@@ -1,0 +1,133 @@
+@model List<MoviesAdmin.ViewModels.Movies.MovieListItemViewModel>
+
+@* Rendered both by Movies/Index (initial page load) and Movies/Search (async search bar), so the
+   client can swap #movie-catalog's innerHTML with the same markup either way. Holds both
+   presentations of the same rows — a poster grid and a list table — and #movie-catalog's
+   is-grid/is-list class (toggled in movies.js) decides which one is visible. Every card/row
+   carries data-movie-id so the delete Undo window can dim both at once. *@
+
+@{
+    // One Delete button definition for both views: the SweetAlert confirmation is built from these
+    // data-* attributes client-side, with no extra round trip.
+    void DeleteButton(MoviesAdmin.ViewModels.Movies.MovieListItemViewModel movie, string cssClass, string releaseText, string runtimeText, string genresText)
+    {
+        <button type="button" class="@cssClass movie-delete-btn"
+                data-id="@movie.Id"
+                data-title="@movie.Title"
+                data-image="@movie.DisplayImageUrl"
+                data-release="@releaseText"
+                data-runtime="@runtimeText"
+                data-genres="@genresText"
+                title="Delete movie">
+            <i class="fa-solid fa-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
+        </button>
+    }
+}
+
+@if (Model.Count == 0)
+{
+    <div class="catalog-empty">
+        <i class="fa-solid fa-film" aria-hidden="true"></i>
+        <p class="mb-0">No movies found.</p>
+    </div>
+}
+else
+{
+    <p class="catalog-count">@Model.Count @(Model.Count == 1 ? "title" : "titles")</p>
+
+    <div class="poster-grid catalog-grid-view">
+        @foreach (var movie in Model)
+        {
+            var runtimeText = movie.RuntimeMinutes.HasValue ? $"{movie.RuntimeMinutes} min" : "—";
+            var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
+            var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
+
+            <article class="movie-card" data-movie-id="@movie.Id">
+                <div class="movie-card-poster">
+                    <img src="@movie.DisplayImageUrl" alt="@movie.Title poster" loading="lazy" />
+                    @if (movie.AverageRating.HasValue)
+                    {
+                        <span class="movie-card-badge"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                    }
+                    <div class="movie-card-overlay">
+                        <button type="button" class="movie-card-play movie-view-btn" data-id="@movie.Id" title="View details">
+                            <i class="fa-solid fa-play" aria-hidden="true"></i><span class="visually-hidden">View @movie.Title</span>
+                        </button>
+                        <div class="movie-card-actions" role="group" aria-label="@movie.Title actions">
+                            <button type="button" class="icon-btn movie-edit-btn" data-id="@movie.Id" title="Edit movie">
+                                <i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                            </button>
+                            @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, runtimeText, genresText); }
+                        </div>
+                    </div>
+                </div>
+                <div class="movie-card-body">
+                    <h3 class="movie-card-title" title="@movie.Title">@movie.Title</h3>
+                    <p class="movie-card-meta">
+                        <span>@movie.ReleaseDate.Year</span>
+                        @if (movie.RuntimeMinutes.HasValue)
+                        {
+                            <span>@movie.RuntimeMinutes min</span>
+                        }
+                    </p>
+                </div>
+            </article>
+        }
+    </div>
+
+    <div class="table-responsive catalog-list-view">
+        <table class="table table-hover align-middle catalog-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 64px;">Poster</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Release Date</th>
+                    <th scope="col">Runtime</th>
+                    <th scope="col">Genres</th>
+                    <th scope="col">Rating</th>
+                    <th scope="col" class="text-end movie-actions-cell">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movie in Model)
+                {
+                    var runtimeText = movie.RuntimeMinutes.HasValue ? $"{movie.RuntimeMinutes} min" : "—";
+                    var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
+                    var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
+
+                    <tr data-movie-id="@movie.Id">
+                        <td>
+                            <img src="@movie.DisplayImageUrl" alt="@movie.Title poster" class="catalog-table-thumb" loading="lazy" />
+                        </td>
+                        <td class="fw-semibold">@movie.Title</td>
+                        <td>@releaseText</td>
+                        <td>@runtimeText</td>
+                        <td>@genresText</td>
+                        <td>
+                            @if (movie.AverageRating.HasValue)
+                            {
+                                <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                                <span class="text-body-secondary small ms-1">(@movie.ReviewCount)</span>
+                            }
+                            else
+                            {
+                                <span class="text-body-secondary">No reviews</span>
+                            }
+                        </td>
+                        <td class="text-end movie-actions-cell">
+                            <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
+                                <button type="button" class="icon-btn movie-view-btn" data-id="@movie.Id" title="View details">
+                                    <i class="fa-solid fa-eye" aria-hidden="true"></i><span class="visually-hidden">View</span>
+                                </button>
+                                <button type="button" class="icon-btn movie-edit-btn" data-id="@movie.Id" title="Edit movie">
+                                    <i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
+                                </button>
+                                @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, runtimeText, genresText); }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoviesAdmin.Data;
 
@@ -11,9 +12,11 @@ using MoviesAdmin.Data;
 namespace MoviesAdmin.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928005918_AddIamRoles")]
+    partial class AddIamRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -263,38 +266,6 @@ namespace MoviesAdmin.Migrations
                         .IsUnique();
 
                     b.ToTable("Directors");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Bio = "Director of Pride & Prejudice (2005), produced by Working Title Films.",
-                            Name = "Joe Wright"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Bio = "Director of Little Women (2019), released by Columbia Pictures.",
-                            Name = "Greta Gerwig"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Bio = "Director of Inception (2010), produced by Syncopy.",
-                            Name = "Christopher Nolan"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Bio = "Director of Dune (2021), produced by Legendary Pictures.",
-                            Name = "Denis Villeneuve"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Bio = "Director of Parasite (2019), produced by Barunson E&A.",
-                            Name = "Bong Joon-ho"
-                        });
                 });
 
             modelBuilder.Entity("MoviesAdmin.Models.Genre", b =>
@@ -362,19 +333,6 @@ namespace MoviesAdmin.Migrations
                     b.HasIndex("StudioId");
 
                     b.ToTable("Movies");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DirectorId = 1,
-                            PosterUrl = "https://image.tmdb.org/t/p/w500/o8UhmEbWPHmTUxP0lMuCoqNkbB3.jpg",
-                            ReleaseDate = new DateTime(2005, 9, 16, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RuntimeMinutes = 129,
-                            StudioId = 1,
-                            Synopsis = "Sparks fly when spirited Elizabeth Bennet meets single, rich, and proud Mr. Darcy. But Mr. Darcy reluctantly finds himself falling in love with a woman beneath his class. Can each overcome their own pride and prejudice?",
-                            Title = "Pride & Prejudice"
-                        });
                 });
 
             modelBuilder.Entity("MoviesAdmin.Models.MovieGenre", b =>
@@ -445,33 +403,6 @@ namespace MoviesAdmin.Migrations
                         .IsUnique();
 
                     b.ToTable("Studios");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Working Title Films"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Columbia Pictures"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Name = "Syncopy"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Name = "Legendary Pictures"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Name = "Barunson E&A"
-                        });
                 });
 
             modelBuilder.Entity("MoviesAdmin.Models.Trailer", b =>

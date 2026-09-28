@@ -1,5 +1,60 @@
+/* MoviesAdmin cinematic theme ----------------------------------------------------------------
+   Dark-first (see the theme bootstrap in _Layout.cshtml / site.js), with a light variant behind
+   the navbar toggle. Everything reads from the --ma-* tokens below; Bootstrap's own --bs-* vars
+   are pointed at them so stock components (forms, tables, modals) blend in too. */
+
+:root,
+[data-bs-theme="dark"] {
+  --ma-bg: #09090d;
+  --ma-surface: #13131a;
+  --ma-surface-2: #1c1c25;
+  --ma-border: rgba(255, 255, 255, 0.08);
+  --ma-text: #f3f3f6;
+  --ma-muted: #9b9bab;
+  --ma-accent: #e11d48;
+  --ma-accent-hover: #f43f5e;
+  --ma-accent-soft: rgba(225, 29, 72, 0.16);
+  --ma-glass: rgba(9, 9, 13, 0.72);
+  --ma-glass-btn: rgba(255, 255, 255, 0.1);
+  --ma-glass-btn-hover: rgba(255, 255, 255, 0.18);
+  --ma-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  --ma-hero-fade: linear-gradient(90deg, rgba(9, 9, 13, 0.96) 0%, rgba(9, 9, 13, 0.78) 45%, rgba(9, 9, 13, 0.35) 100%);
+  --ma-star: #fbbf24;
+}
+
+[data-bs-theme="light"] {
+  --ma-bg: #f4f4f7;
+  --ma-surface: #ffffff;
+  --ma-surface-2: #ececf2;
+  --ma-border: rgba(15, 15, 25, 0.1);
+  --ma-text: #111118;
+  --ma-muted: #5d5d6e;
+  --ma-accent: #e11d48;
+  --ma-accent-hover: #be123c;
+  --ma-accent-soft: rgba(225, 29, 72, 0.1);
+  --ma-glass: rgba(244, 244, 247, 0.78);
+  --ma-glass-btn: rgba(15, 15, 25, 0.06);
+  --ma-glass-btn-hover: rgba(15, 15, 25, 0.12);
+  --ma-shadow: 0 18px 40px rgba(20, 20, 40, 0.16);
+  --ma-hero-fade: linear-gradient(90deg, rgba(244, 244, 247, 0.97) 0%, rgba(244, 244, 247, 0.85) 45%, rgba(244, 244, 247, 0.4) 100%);
+  --ma-star: #d97706;
+}
+
+[data-bs-theme] {
+  --bs-body-bg: var(--ma-bg);
+  --bs-body-color: var(--ma-text);
+  --bs-secondary-color: var(--ma-muted);
+  --bs-border-color: var(--ma-border);
+  --bs-tertiary-bg: var(--ma-surface);
+  --bs-link-color-rgb: 244, 63, 94;
+  --bs-link-hover-color-rgb: 225, 29, 72;
+  --bs-body-font-family: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bs-border-radius: 0.75rem;
+  --bs-border-radius-lg: 1rem;
+}
+
 html {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 @media (min-width: 768px) {
@@ -8,23 +63,803 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem var(--bs-body-bg), 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
-  margin-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--ma-bg);
+  color: var(--ma-text);
+  -webkit-font-smoothing: antialiased;
   /* Smooths the light/dark switch from the theme toggle instead of an abrupt color snap. */
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Fluid side padding shared by the navbar, page content, and footer. */
+.page-gutter {
+  padding-inline: clamp(1rem, 4vw, 3.5rem);
+}
+
+.site-main {
+  flex: 1 0 auto;
+  padding-block: 1.5rem 3rem;
+  /* No fill-mode on purpose: a retained transform would make <main> a stacking context and trap
+     the Movies modal (which lives inside it) underneath Bootstrap's body-level backdrop. */
+  animation: page-in 0.35s ease-out;
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Buttons ------------------------------------------------------------------------------------- */
+
+.btn {
+  font-weight: 600;
+  border-radius: 999px;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--ma-accent);
+  --bs-btn-border-color: var(--ma-accent);
+  --bs-btn-hover-bg: var(--ma-accent-hover);
+  --bs-btn-hover-border-color: var(--ma-accent-hover);
+  --bs-btn-active-bg: var(--ma-accent-hover);
+  --bs-btn-active-border-color: var(--ma-accent-hover);
+  --bs-btn-disabled-bg: var(--ma-accent);
+  --bs-btn-disabled-border-color: var(--ma-accent);
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.3);
+}
+
+.btn-glass {
+  color: var(--ma-text);
+  background: var(--ma-glass-btn);
+  border: 1px solid var(--ma-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.btn-glass:hover,
+.btn-glass:focus-visible {
+  color: var(--ma-text);
+  background: var(--ma-glass-btn-hover);
+}
+
+.btn-secondary {
+  --bs-btn-bg: var(--ma-surface-2);
+  --bs-btn-border-color: var(--ma-border);
+  --bs-btn-color: var(--ma-text);
+  --bs-btn-hover-bg: var(--ma-glass-btn-hover);
+  --bs-btn-hover-border-color: var(--ma-border);
+  --bs-btn-hover-color: var(--ma-text);
+}
+
+/* Round icon-only button: row/card actions, theme toggle. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--ma-border);
+  border-radius: 50%;
+  color: var(--ma-text);
+  background: var(--ma-glass-btn);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  background: var(--ma-glass-btn-hover);
+  transform: translateY(-1px);
+}
+
+.icon-btn-danger:hover,
+.icon-btn-danger:focus-visible {
+  color: #fff;
+  background: var(--ma-accent);
+  border-color: var(--ma-accent);
+}
+
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem var(--ma-bg), 0 0 0 0.35rem var(--ma-accent);
+}
+
+/* Navbar ------------------------------------------------------------------------------------ */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background: var(--ma-glass);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  border-bottom: 1px solid var(--ma-border);
+}
+
+.site-header .navbar {
+  min-height: 4rem;
+}
+
+.navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+  color: var(--ma-text);
+}
+
+.navbar-brand:hover {
+  color: var(--ma-text);
+}
+
+.brand-accent {
+  color: var(--ma-accent);
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--ma-accent), #fb7185);
+  font-size: 0.9rem;
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35);
+}
+
+.brand-mark-lg {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 1rem;
+  font-size: 1.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.site-header .nav-link {
+  position: relative;
+  font-weight: 500;
+  color: var(--ma-muted);
+  transition: color 0.15s ease;
+}
+
+.site-header .nav-link:hover,
+.site-header .nav-link:focus-visible,
+.site-header .nav-link.active {
+  color: var(--ma-text);
+}
+
+@media (min-width: 768px) {
+  .site-header .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: -0.2rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ma-accent);
+  }
+}
+
+.navbar-toggler {
+  border: 0;
+  color: var(--ma-text);
+  font-size: 1.25rem;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--ma-surface-2);
+  color: var(--ma-muted);
+  font-size: 0.875rem;
+}
+
+.user-chip i {
+  color: var(--ma-accent);
 }
 
 #theme-toggle {
   line-height: 1;
+}
+
+/* Footer ------------------------------------------------------------------------------------ */
+
+.site-footer {
+  display: flex;
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--ma-border);
+  color: var(--ma-muted);
+  font-size: 0.875rem;
+}
+
+.site-footer a {
+  color: var(--ma-muted);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: var(--ma-text);
+}
+
+/* Hero (featured movie / landing) ------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 1.5rem;
+  background: var(--ma-surface);
+  border: 1px solid var(--ma-border);
+  margin-bottom: 1.5rem;
+  animation: hero-in 0.5s ease-out both;
+}
+
+@keyframes hero-in {
+  from { opacity: 0; transform: scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Blurred, oversized poster behind the content, faded into the page color from the left. */
+.hero-backdrop {
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(40px) saturate(140%);
+  opacity: 0.7;
+  z-index: -2;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ma-hero-fade);
+  z-index: -1;
+}
+
+.hero-empty,
+.hero-landing {
+  background:
+    radial-gradient(60% 120% at 100% 0%, var(--ma-accent-soft), transparent 70%),
+    radial-gradient(50% 90% at 0% 100%, rgba(99, 102, 241, 0.14), transparent 70%),
+    var(--ma-surface);
+}
+
+.hero-empty::after,
+.hero-landing::after {
+  display: none;
+}
+
+.hero-inner {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2.75rem);
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  min-height: clamp(280px, 42vh, 460px);
+}
+
+.hero-poster {
+  flex: 0 0 auto;
+  width: clamp(130px, 17vw, 230px);
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 1rem;
+  box-shadow: var(--ma-shadow);
+  transform: rotate(-1.5deg);
+  transition: transform 0.4s ease;
+}
+
+.hero:hover .hero-poster {
+  transform: rotate(0) scale(1.02);
+}
+
+.hero-content {
+  max-width: 42rem;
+  min-width: 0;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--ma-accent-soft);
+  color: var(--ma-accent-hover);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(2rem, 5vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  color: var(--ma-muted);
+  font-weight: 500;
+}
+
+.hero-meta > span + span:not(.rating-chip)::before {
+  content: "•";
+  margin-right: 0.9rem;
+  opacity: 0.5;
+}
+
+.hero-meta .rating-chip + span::before {
+  display: none;
+}
+
+.hero-synopsis {
+  margin: 1rem 0 0;
+  color: var(--ma-muted);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 575.98px) {
+  .hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-poster {
+    width: 120px;
+  }
+}
+
+.rating-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.14);
+  color: var(--ma-star);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.genre-pill {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--ma-border);
+  background: var(--ma-surface-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Catalog toolbar ----------------------------------------------------------------------------- */
+
+.catalog-toolbar {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--ma-border);
+  background: var(--ma-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 1rem;
+  height: 2.6rem;
+  border-radius: 999px;
+  background: var(--ma-surface-2);
+  color: var(--ma-muted);
+  transition: box-shadow 0.15s ease;
+}
+
+.search-pill:focus-within {
+  box-shadow: 0 0 0 2px var(--ma-accent);
+}
+
+.search-pill input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ma-text);
+}
+
+.search-pill input::placeholder {
+  color: var(--ma-muted);
+}
+
+.view-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--ma-surface-2);
+}
+
+.view-toggle-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ma-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.view-toggle-btn[aria-pressed="true"] {
+  background: var(--ma-surface);
+  color: var(--ma-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.section-heading {
+  margin-bottom: 0.25rem;
+  font-size: 1.35rem;
+}
+
+.catalog-count {
+  margin-bottom: 1rem;
+  color: var(--ma-muted);
+  font-size: 0.875rem;
+}
+
+.catalog-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+  border: 1px dashed var(--ma-border);
+  border-radius: 1.25rem;
+  color: var(--ma-muted);
+}
+
+.catalog-empty i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* #movie-catalog shows one presentation of the same rows at a time (toggled in movies.js). */
+#movie-catalog.is-grid .catalog-list-view,
+#movie-catalog.is-list .catalog-grid-view {
+  display: none;
+}
+
+/* Poster grid --------------------------------------------------------------------------------- */
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 16vw, 190px), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.movie-card {
+  min-width: 0;
+  animation: card-in 0.4s ease-out both;
+}
+
+.movie-card:nth-child(n + 2) { animation-delay: 0.03s; }
+.movie-card:nth-child(n + 4) { animation-delay: 0.06s; }
+.movie-card:nth-child(n + 8) { animation-delay: 0.09s; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.movie-card-poster {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  border-radius: 1rem;
+  background: var(--ma-surface-2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.movie-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.movie-card:hover .movie-card-poster,
+.movie-card:focus-within .movie-card-poster {
+  transform: translateY(-6px);
+  box-shadow: var(--ma-shadow), 0 0 0 2px var(--ma-accent);
+}
+
+.movie-card:hover .movie-card-poster img,
+.movie-card:focus-within .movie-card-poster img {
+  transform: scale(1.07);
+}
+
+.movie-card-badge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Hover overlay: a big play (view) button in the middle and the edit/delete bar at the bottom. */
+.movie-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.75) 100%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.movie-card:hover .movie-card-overlay,
+.movie-card:focus-within .movie-card-overlay {
+  opacity: 1;
+}
+
+.movie-card-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ma-accent);
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 10px 30px rgba(225, 29, 72, 0.5);
+  transform: scale(0.85);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease;
+}
+
+.movie-card:hover .movie-card-play,
+.movie-card:focus-within .movie-card-play {
+  transform: scale(1);
+}
+
+.movie-card-play:hover {
+  background: var(--ma-accent-hover);
+}
+
+.movie-card-actions {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.movie-card-actions .icon-btn {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Touch screens have no hover: keep the action bar visible, drop the center play button
+   (tapping the card's poster area is the view action there). */
+@media (hover: none) {
+  .movie-card-overlay {
+    opacity: 1;
+    background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.7) 100%);
+  }
+
+  .movie-card-play {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0;
+  }
+}
+
+.movie-card-body {
+  padding: 0.7rem 0.15rem 0;
+}
+
+.movie-card-title {
+  margin: 0;
+  font-size: 0.975rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0;
+  color: var(--ma-muted);
+  font-size: 0.8rem;
+}
+
+.movie-card-meta span + span::before {
+  content: "•";
+  margin-right: 0.5rem;
+  opacity: 0.5;
+}
+
+/* List view ------------------------------------------------------------------------------------ */
+
+.catalog-list-view {
+  border: 1px solid var(--ma-border);
+  border-radius: 1.25rem;
+  background: var(--ma-surface);
+}
+
+.catalog-table {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: var(--ma-surface-2);
+  --bs-table-border-color: var(--ma-border);
+}
+
+.catalog-table > :not(caption) > * > * {
+  padding: 0.75rem 1rem;
+}
+
+.catalog-table thead th {
+  color: var(--ma-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.catalog-table-thumb {
+  width: 44px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+/* Keeps a row's View/Edit/Delete buttons together in one cell on the record's own row, instead of
+   wrapping onto a second line when the table gets narrow. width: 1% shrinks the column to fit. */
+.movie-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Applied to a card/row the moment its delete is confirmed, for the 10-second undo window in
+   movies.js: it visibly "goes away" immediately, but stays in the DOM (and un-deleted
+   server-side) until the countdown elapses, so Undo can instantly restore it. */
+.movie-pending-delete {
+  opacity: 0.3;
+  filter: grayscale(1);
+  pointer-events: none;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* Modals --------------------------------------------------------------------------------------- */
+
+/* Blurs whatever's behind an open Create/Edit/View modal instead of Bootstrap's plain dim overlay. */
+.modal-backdrop.show {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.6);
+  opacity: 1;
+}
+
+.modal-content {
+  --bs-modal-bg: var(--ma-surface);
+  --bs-modal-border-color: var(--ma-border);
+  --bs-modal-header-border-color: var(--ma-border);
+  --bs-modal-footer-border-color: var(--ma-border);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: var(--ma-shadow);
+}
+
+.form-control,
+.form-select {
+  background-color: var(--ma-surface-2);
+  border-color: var(--ma-border);
+  color: var(--ma-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--ma-surface-2);
+  border-color: var(--ma-accent);
+  color: var(--ma-text);
+}
+
+.form-check-input:checked {
+  background-color: var(--ma-accent);
+  border-color: var(--ma-accent);
+}
+
+.form-label {
+  font-weight: 500;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -36,25 +871,131 @@ body {
   text-align: start;
 }
 
-.img {
-    height: 20vh;
-    width: auto;
+/* Details (View) modal: blurred poster wash behind the content, like the page hero. */
+.details-modal {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
 }
 
-/* Movies CRUD (Views/Movies/*, wwwroot/js/movies.js) --------------------------------------- */
-
-/* Blurs whatever's behind an open Create/Edit/View modal instead of Bootstrap's plain dim overlay. */
-.modal-backdrop.show {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  background-color: rgba(0, 0, 0, 0.5);
+.details-backdrop {
+  position: absolute;
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  filter: blur(50px) saturate(140%);
+  opacity: 0.35;
+  z-index: -1;
 }
 
-/* Applied to a table row the moment its delete is confirmed, for the 10-second undo window in
-   movies.js: the row visibly "goes away" immediately, but stays in the DOM (and un-deleted
-   server-side) until the countdown elapses, so Undo can instantly restore it. */
-.movie-row-pending-delete {
-  opacity: 0.4;
-  pointer-events: none;
-  transition: opacity 0.2s ease-in-out;
+.details-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.details-body {
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.details-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 1rem;
+  box-shadow: var(--ma-shadow);
+}
+
+.details-title {
+  margin: 0 2.5rem 0.6rem 0;
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.details-synopsis {
+  color: var(--ma-muted);
+  line-height: 1.65;
+}
+
+.details-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--ma-glass-btn);
+}
+
+.details-facts dt {
+  color: var(--ma-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.details-facts dd {
+  margin: 0.15rem 0 0;
+  font-weight: 500;
+}
+
+/* SweetAlert2 (theme: 'dark'/'light' is chosen per call in movies.js; these match our palette). */
+[data-bs-theme="dark"] .swal2-popup {
+  --swal2-background: var(--ma-surface);
+  --swal2-color: var(--ma-text);
+}
+
+.swal2-popup {
+  border-radius: 1.25rem !important;
+  font-family: var(--bs-body-font-family);
+}
+
+.swal2-styled {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+}
+
+/* Auth screens (Login / Access denied) --------------------------------------------------------- */
+
+.auth-stage {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 12rem);
+  background:
+    radial-gradient(40% 50% at 20% 20%, var(--ma-accent-soft), transparent 70%),
+    radial-gradient(40% 50% at 80% 80%, rgba(99, 102, 241, 0.14), transparent 70%);
+  border-radius: 1.5rem;
+}
+
+.auth-card {
+  width: min(100%, 26rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--ma-border);
+  border-radius: 1.5rem;
+  background: var(--ma-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--ma-shadow);
+}
+
+.auth-title {
+  margin-bottom: 0.35rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.auth-subtitle {
+  color: var(--ma-muted);
+  margin-bottom: 1.75rem;
+}
+
+.auth-footnote {
+  margin: 1.5rem 0 0;
+  color: var(--ma-muted);
+  font-size: 0.8rem;
+  text-align: center;
 }

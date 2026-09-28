@@ -1,0 +1,58 @@
+@model MoviesAdmin.ViewModels.Movies.MovieListItemViewModel?
+
+@* Featured banner at the top of Movies/Index. Rendered on page load and re-fetched from
+   GET /Movies/Hero by movies.js after every create/edit/delete. *@
+
+@if (Model == null)
+{
+    <section class="hero hero-empty">
+        <div class="hero-inner">
+            <div class="hero-content">
+                <span class="hero-eyebrow"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i>Your catalog is empty</span>
+                <h1 class="hero-title">Start your collection</h1>
+                <p class="hero-synopsis">Add a first movie with its poster, trailer, and genres. It'll be featured right here.</p>
+            </div>
+        </div>
+    </section>
+}
+else
+{
+    var movie = Model;
+    <section class="hero" aria-label="Featured movie">
+        <img class="hero-backdrop" src="@movie.DisplayImageUrl" alt="" aria-hidden="true" />
+        <div class="hero-inner">
+            <img class="hero-poster" src="@movie.DisplayImageUrl" alt="@movie.Title poster" />
+            <div class="hero-content">
+                <span class="hero-eyebrow"><i class="fa-solid fa-bolt" aria-hidden="true"></i>Latest addition</span>
+                <h1 class="hero-title">@movie.Title</h1>
+                <div class="hero-meta">
+                    @if (movie.AverageRating.HasValue)
+                    {
+                        <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                    }
+                    <span>@movie.ReleaseDate.Year</span>
+                    @if (movie.RuntimeMinutes.HasValue)
+                    {
+                        <span>@movie.RuntimeMinutes min</span>
+                    }
+                    @if (!string.IsNullOrEmpty(movie.GenreNames))
+                    {
+                        <span>@movie.GenreNames</span>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(movie.Synopsis))
+                {
+                    <p class="hero-synopsis">@movie.Synopsis</p>
+                }
+                <div class="hero-actions">
+                    <button type="button" class="btn btn-primary btn-lg movie-view-btn" data-id="@movie.Id">
+                        <i class="fa-solid fa-circle-info me-2" aria-hidden="true"></i>View details
+                    </button>
+                    <button type="button" class="btn btn-glass btn-lg movie-edit-btn" data-id="@movie.Id">
+                        <i class="fa-solid fa-pen me-2" aria-hidden="true"></i>Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+}

@@ -4,31 +4,35 @@
     ViewData["Title"] = "Log in";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <h1 class="mb-4">@ViewData["Title"]</h1>
+<div class="auth-stage">
+    <div class="auth-card">
+        <span class="brand-mark brand-mark-lg" aria-hidden="true"><i class="fa-solid fa-film"></i></span>
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Sign in with your administrator account.</p>
+
         <form asp-controller="Account" asp-action="Login" method="post">
             <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group mb-3">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="mb-3">
                 <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" autocomplete="username" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+                <input asp-for="Email" class="form-control form-control-lg" autocomplete="username" placeholder="admin@moviesadmin.local" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
-            <div class="form-group mb-3">
+            <div class="mb-3">
                 <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" autocomplete="current-password" />
-                <span asp-validation-for="Password" class="text-danger"></span>
+                <input asp-for="Password" class="form-control form-control-lg" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
             </div>
-            <div class="form-check mb-3">
+            <div class="form-check mb-4">
                 <input asp-for="RememberMe" class="form-check-input" />
                 <label asp-for="RememberMe" class="form-check-label"></label>
             </div>
-            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</button>
+            <button type="submit" class="btn btn-primary btn-lg w-100"><i class="fa-solid fa-right-to-bracket me-2" aria-hidden="true"></i>Log in</button>
         </form>
-        <p class="mt-3">
-            Don't have an account? <a asp-controller="Account" asp-action="Register">Register</a>
-        </p>
+
+        @* No self-registration: accounts and their roles are provisioned by the application
+           (SeedUsers configuration, applied by Data/IdentitySeeder.cs). *@
+        <p class="auth-footnote"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Accounts are issued by the application administrator.</p>
     </div>
 </div>
 

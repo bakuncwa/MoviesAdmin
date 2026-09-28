@@ -4,39 +4,36 @@
     ViewData["Title"] = "Movies";
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <h1 class="h3 mb-0">Movies</h1>
-    <button type="button" id="create-movie-btn" class="btn btn-primary">
-        <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie
+<div id="movie-hero">
+    @await Html.PartialAsync("_MovieHero", ViewData["Featured"] as MoviesAdmin.ViewModels.Movies.MovieListItemViewModel)
+</div>
+
+@* Sticky toolbar: search, grid/list toggle, and "Add Movie" share one row. *@
+<div class="catalog-toolbar">
+    <label for="movie-search" class="visually-hidden">Search movies</label>
+    <div class="search-pill">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="search" id="movie-search" placeholder="Search movies by title..." autocomplete="off" />
+    </div>
+    <div class="view-toggle" role="group" aria-label="Catalog layout">
+        <button type="button" class="view-toggle-btn" data-catalog-view="grid" aria-pressed="true" title="Poster grid">
+            <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span class="visually-hidden">Poster grid</span>
+        </button>
+        <button type="button" class="view-toggle-btn" data-catalog-view="list" aria-pressed="false" title="List">
+            <i class="fa-solid fa-list" aria-hidden="true"></i><span class="visually-hidden">List</span>
+        </button>
+    </div>
+    <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
+        <i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span class="d-none d-sm-inline">Add Movie</span>
     </button>
 </div>
 
-<div class="mb-3">
-    <label for="movie-search" class="form-label visually-hidden">Search movies</label>
-    <div class="input-group">
-        <span class="input-group-text" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
-        <input type="search" id="movie-search" class="form-control" placeholder="Search movies by title..." autocomplete="off" />
+<section aria-labelledby="library-heading">
+    <h2 id="library-heading" class="section-heading">Library</h2>
+    <div id="movie-catalog" class="is-grid">
+        @await Html.PartialAsync("_MovieCatalog", Model)
     </div>
-</div>
-
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th scope="col" style="width: 64px;">Poster</th>
-                <th scope="col">Title</th>
-                <th scope="col">Release Date</th>
-                <th scope="col">Runtime</th>
-                <th scope="col">Genres</th>
-                <th scope="col">Rating</th>
-                <th scope="col" class="text-end">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="movie-table-body">
-            @await Html.PartialAsync("_MovieTableRows", Model)
-        </tbody>
-    </table>
-</div>
+</section>
 
 @* Shared modal shell for Create/Edit/View; its content is swapped in via AJAX by movies.js. *@
 <div class="modal fade" id="movie-modal" tabindex="-1" aria-hidden="true">

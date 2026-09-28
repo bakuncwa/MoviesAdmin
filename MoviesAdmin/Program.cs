@@ -29,11 +29,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // --- IAM (Identity/Access Management) setup ------------------------------------------------
 // Movie management (MoviesController) is restricted to the "Admin" role, matching the README's
-// "Admin RBAC viewpoint" description. The role itself is seeded via HasData in
-// ApplicationDbContext, but that seed is NOT YET MIGRATED (see the comment there) — so this
-// policy has no one who satisfies it until that migration is generated, applied, and an account
-// is assigned the Admin role. Left in place now as groundwork rather than deferred, so the
-// controller wiring doesn't need to change again later.
+// "Admin RBAC viewpoint" description. The role is seeded via HasData in ApplicationDbContext
+// (AddIamRoles migration); accounts holding it come from the "SeedUsers" config (IdentitySeeder).
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
@@ -54,6 +51,9 @@ builder.Services.AddScoped<IStudioRepository, StudioRepository>();
 // registration above rather than needing its own ITrailerRepository/TrailerRepository pair.
 
 var app = builder.Build();
+
+// Registration is disabled: create the configured "SeedUsers" accounts and bind them to their roles.
+await IdentitySeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

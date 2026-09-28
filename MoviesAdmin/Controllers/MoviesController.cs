@@ -8,14 +8,12 @@ using MoviesAdmin.ViewModels.Movies;
 
 namespace MoviesAdmin.Controllers
 {
-    // Admin CRUD for Movies: tabulated Index with async search, Create/Edit as AJAX-loaded modals,
+    // Admin CRUD for Movies: poster-grid/list Index with a featured hero and async search, Create/Edit as AJAX-loaded modals,
     // Details as an AJAX-loaded modal, Delete confirmed client-side (SweetAlert2 + a 10-second
     // "Undo" window in wwwroot/js/movies.js) before this controller ever removes anything.
     //
-    // IAM: gated behind the "Admin" policy set up in Program.cs. That policy has no one who
-    // satisfies it yet — the Admin role it checks is seeded in ApplicationDbContext but NOT
-    // migrated/applied, per instruction, so treat this attribute as groundwork rather than a
-    // live gate until that migration lands and an account is assigned the role.
+    // IAM: gated behind the "Admin" policy set up in Program.cs. The Admin role is seeded by the
+    // AddIamRoles migration and granted to the first account that registers.
     [Authorize(Policy = "RequireAdmin")]
     public class MoviesController : Controller
     {
@@ -62,11 +60,28 @@ namespace MoviesAdmin.Controllers
         {
             var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.TitleAsc);
             var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
+            ViewData["Featured"] = PickFeatured(rows);
             return View(rows);
         }
 
+        // GET: Movies/Hero
+        // Re-rendered by movies.js after a create/edit/delete so the featured banner never shows a
+        // stale or deleted movie.
+        [HttpGet]
+        public async Task<IActionResult> Hero()
+        {
+            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.TitleAsc);
+            var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
+            return PartialView("_MovieHero", PickFeatured(rows));
+        }
+
+        // The hero banner features the most recently added movie (highest Id).
+        private static MovieListItemViewModel? PickFeatured(IEnumerable<MovieListItemViewModel> rows) =>
+            rows.OrderByDescending(m => m.Id).FirstOrDefault();
+
         // GET: Movies/Search?q=...
-        // Async search bar: returns just the <tr> rows partial so the client can swap tbody content.
+        // Async search bar: returns the catalog partial (poster grid + list table) so the client can
+        // swap #movie-catalog's content.
         [HttpGet]
         public async Task<IActionResult> Search(string? q)
         {
@@ -80,7 +95,7 @@ namespace MoviesAdmin.Controllers
 
             var movies = await _movieRepository.SearchAsync(q, null, null, MovieSortOrder.TitleAsc);
             var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
-            return PartialView("_MovieTableRows", rows);
+            return PartialView("_MovieCatalog", rows);
         }
 
         // GET: Movies/CreateModal

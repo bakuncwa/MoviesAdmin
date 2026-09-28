@@ -16,11 +16,15 @@
                 if (storedTheme === 'light' || storedTheme === 'dark') {
                     return storedTheme
                 }
-                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+                // Dark by default: the cinematic theme is designed dark-first; light is opt-in via the toggle.
+                return 'dark'
             }
             document.documentElement.setAttribute('data-bs-theme', getPreferredTheme())
         })()
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     @* Solid style only (fontawesome.min.css base + solid.min.css glyphs) — the only style used by
        button icons across the site, kept small rather than vendoring the full "all" bundle. *@
@@ -30,38 +34,41 @@
     <link rel="stylesheet" href="~/MoviesAdmin.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm bg-body-tertiary border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MoviesAdmin</a>
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        string NavActive(string controller) => string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+    <header class="site-header">
+        <nav class="navbar navbar-expand-md">
+            <div class="container-fluid page-gutter">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-film"></i></span><span>Movies<span class="brand-accent">Admin</span></span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse justify-content-between">
+                    <ul class="navbar-nav flex-grow-1 ms-md-4">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
+                            <a class="nav-link @NavActive("Home")" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
                         </li>
                         @* Controllers below are pending per README's "Planned" feature list; routes are wired ahead of time. *@
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Movies" asp-action="Index">Movies</a>
+                            <a class="nav-link @NavActive("Movies")" asp-area="" asp-controller="Movies" asp-action="Index">Movies</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Genres" asp-action="Index">Genres</a>
+                            <a class="nav-link @NavActive("Genres")" asp-area="" asp-controller="Genres" asp-action="Index">Genres</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Reviews" asp-action="Index">Reviews</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link @NavActive("Reviews")" asp-area="" asp-controller="Reviews" asp-action="Index">Reviews</a>
                         </li>
                     </ul>
-                    <ul class="navbar-nav align-items-sm-center">
+                    <ul class="navbar-nav align-items-md-center gap-md-2">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item d-flex align-items-center me-2">
-                                <span>Hi, @User.Identity.Name</span>
+                            <li class="nav-item d-flex align-items-center">
+                                <span class="user-chip"><i class="fa-solid fa-user-shield" aria-hidden="true"></i>@User.Identity.Name</span>
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-flex">
@@ -71,16 +78,14 @@
                         }
                         else
                         {
+                            @* No Register link: accounts are provisioned from configuration (Data/IdentitySeeder.cs). *@
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Register"><i class="fa-solid fa-user-plus me-1" aria-hidden="true"></i>Register</a>
+                                <a class="nav-link @NavActive("Account")" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
                             </li>
                         }
-                        <li class="nav-item ms-sm-2">
+                        <li class="nav-item">
                             @* Icons adapted from Bootstrap Icons (MIT) so no extra library needs to be vendored. *@
-                            <button id="theme-toggle" type="button" class="btn btn-outline-secondary btn-sm" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">
+                            <button id="theme-toggle" type="button" class="icon-btn" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">
                                 <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
                                     <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.707l1.414-1.415a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708" />
                                 </svg>
@@ -95,16 +100,14 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - MoviesAdmin - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
+    <main role="main" class="site-main page-gutter">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer page-gutter">
+        <span>&copy; 2026 MoviesAdmin</span>
+        <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

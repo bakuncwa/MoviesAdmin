@@ -3,8 +3,8 @@
 
 // Write your JavaScript code.
 
-// Light/dark mode toggle. The initial theme (from localStorage, or the OS preference as a
-// light-by-default fallback) is already applied by the inline script in _Layout.cshtml's <head>
+// Light/dark mode toggle. The initial theme (from localStorage, otherwise dark — the cinematic
+// theme is dark-first) is already applied by the inline script in _Layout.cshtml's <head>
 // before this file loads, so here we only wire up the button and keep it in sync with that state.
 (() => {
     'use strict'
@@ -17,7 +17,7 @@
         if (storedTheme === 'light' || storedTheme === 'dark') {
             return storedTheme
         }
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        return 'dark'
     }
 
     const setTheme = theme => {
@@ -46,13 +46,4 @@
         updateToggleUI(next)
     })
 
-    // Follow the OS setting live, but only while the visitor hasn't picked an explicit preference.
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (getStoredTheme() === 'light' || getStoredTheme() === 'dark') {
-            return
-        }
-        const theme = getPreferredTheme()
-        setTheme(theme)
-        updateToggleUI(theme)
-    })
 })()

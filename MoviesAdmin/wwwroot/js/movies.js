@@ -10,9 +10,15 @@
 
     const movieModal = new bootstrap.Modal(movieModalEl);
     const modalContent = document.getElementById('movie-modal-content');
-    const tableBody = document.getElementById('movie-table-body');
+    const catalog = document.getElementById('movie-catalog');
+    const hero = document.getElementById('movie-hero');
     const searchInput = document.getElementById('movie-search');
-    const createBtn = document.getElementById('create-movie-btn');
+
+    // SweetAlert2 follows the site's light/dark mode (data-bs-theme on <html>, set by site.js).
+    function swal(options) {
+        const theme = document.documentElement.getAttribute('data-bs-theme') === 'light' ? 'light' : 'dark';
+        return Swal.fire({ theme, ...options });
+    }
 
     // Reset the modal body once it's fully hidden, so the next open never briefly shows stale content.
     movieModalEl.addEventListener('hidden.bs.modal', () => {
@@ -30,14 +36,14 @@
         try {
             const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) {
-                await Swal.fire({ icon: 'error', title: 'Could not load that movie.', text: `Server responded with ${response.status}.` });
+                await swal({ icon: 'error', title: 'Could not load that movie.', text: `Server responded with ${response.status}.` });
                 return;
             }
             modalContent.innerHTML = await response.text();
             bindModalContent();
             movieModal.show();
         } catch (err) {
-            await Swal.fire({ icon: 'error', title: 'Something went wrong', text: 'Could not reach the server. Please try again.' });
+            await swal({ icon: 'error', title: 'Something went wrong', text: 'Could not reach the server. Please try again.' });
         }
     }
 
@@ -77,7 +83,7 @@
             }
             slot.innerHTML = await response.text();
         } catch (err) {
-            await Swal.fire({ icon: 'error', title: 'Could not load the trailer.' });
+            await swal({ icon: 'error', title: 'Could not load the trailer.' });
             button.disabled = false;
             button.innerHTML = '<i class="fa-solid fa-play me-1" aria-hidden="true"></i>Watch Trailer';
         }
@@ -100,8 +106,8 @@
 
             if (response.ok && contentType.includes('application/json')) {
                 movieModal.hide();
-                await refreshTable();
-                await Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Movie saved', showConfirmButton: false, timer: 2000, timerProgressBar: true });
+                await refreshAll();
+                await swal({ toast: true, position: 'top-end', icon: 'success', title: 'Movie saved', showConfirmButton: false, timer: 2000, timerProgressBar: true });
                 return;
             }
 
@@ -109,41 +115,77 @@
             modalContent.innerHTML = await response.text();
             bindModalContent();
         } catch (err) {
-            await Swal.fire({ icon: 'error', title: 'Something went wrong', text: 'Could not save the movie. Please try again.' });
+            await swal({ icon: 'error', title: 'Something went wrong', text: 'Could not save the movie. Please try again.' });
         } finally {
             submitBtn?.removeAttribute('disabled');
         }
     }
 
-    // --- Async search -------------------------------------------------------------------------
+    // --- Async search + refreshing the hero/catalog ------------------------------------------
 
-    async function refreshTable() {
+    async function refreshCatalog() {
         const term = searchInput ? searchInput.value : '';
         const response = await fetch(`/Movies/Search?q=${encodeURIComponent(term)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         if (response.ok) {
-            tableBody.innerHTML = await response.text();
+            catalog.innerHTML = await response.text();
         }
         // A non-ok response means the regex validation in MoviesController.Search rejected the
-        // term; leave the table showing whatever it last showed rather than clearing it.
+        // term; leave the catalog showing whatever it last showed rather than clearing it.
+    }
+
+    async function refreshHero() {
+        const response = await fetch('/Movies/Hero', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (response.ok) {
+            hero.innerHTML = await response.text();
+        }
+    }
+
+    // After any create/edit/delete: the featured movie and the catalog may both have changed.
+    function refreshAll() {
+        return Promise.all([refreshCatalog(), refreshHero()]);
     }
 
     let searchDebounce = null;
     searchInput?.addEventListener('input', () => {
         clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(refreshTable, 300);
+        searchDebounce = setTimeout(refreshCatalog, 300);
     });
+
+    // --- Grid/list toggle (remembered per browser; storage may be unavailable) -----------------
+
+    const viewButtons = document.querySelectorAll('[data-catalog-view]');
+
+    function setCatalogView(view) {
+        catalog.classList.toggle('is-grid', view === 'grid');
+        catalog.classList.toggle('is-list', view === 'list');
+        viewButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.catalogView === view)));
+    }
+
+    try {
+        const savedView = localStorage.getItem('movies-catalog-view');
+        if (savedView === 'grid' || savedView === 'list') {
+            setCatalogView(savedView);
+        }
+    } catch { /* keep the default grid view */ }
+
+    viewButtons.forEach(btn => btn.addEventListener('click', () => {
+        const view = btn.dataset.catalogView;
+        setCatalogView(view);
+        try { localStorage.setItem('movies-catalog-view', view); } catch { /* not persisted */ }
+    }));
 
     // --- Create/Edit/View delegated clicks -----------------------------------------------------
 
-    createBtn?.addEventListener('click', () => loadModal('/Movies/CreateModal'));
-
     document.addEventListener('click', (event) => {
+        // Delegated (like the row/card actions below) so it keeps working if the toolbar is re-rendered.
+        if (event.target.closest('.movie-create-btn')) {
+            loadModal('/Movies/CreateModal');
+            return;
+        }
+
         const editBtn = event.target.closest('.movie-edit-btn');
         if (editBtn) {
-            // If Edit was clicked from inside the View modal's footer, close that one first.
-            if (movieModalEl.classList.contains('show') && modalContent.querySelector('.movie-trailer-btn, #movie-trailer-slot')) {
-                movieModal.hide();
-            }
+            // From inside the View modal this swaps the modal's content in place.
             loadModal(`/Movies/EditModal/${editBtn.dataset.id}`);
             return;
         }
@@ -165,7 +207,7 @@
     async function confirmDelete(data) {
         const { id, title, image, release, runtime, genres } = data;
 
-        const result = await Swal.fire({
+        const result = await swal({
             title: 'Delete this movie?',
             html: `
                 <div class="d-flex gap-3 text-start align-items-start">
@@ -181,7 +223,7 @@
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Delete',
-            confirmButtonColor: '#dc3545',
+            confirmButtonColor: '#e11d48',
             cancelButtonText: 'Cancel',
             focusCancel: true
         });
@@ -193,11 +235,19 @@
         beginPendingDelete(id, title);
     }
 
-    function beginPendingDelete(id, title) {
-        const row = document.getElementById(`movie-row-${id}`);
-        row?.classList.add('movie-row-pending-delete');
+    // Both the poster card and the list row for this movie (only one is visible at a time).
+    function movieElements(id) {
+        return document.querySelectorAll(`[data-movie-id="${CSS.escape(String(id))}"]`);
+    }
 
-        Swal.fire({
+    function setPendingDelete(id, pending) {
+        movieElements(id).forEach(el => el.classList.toggle('movie-pending-delete', pending));
+    }
+
+    function beginPendingDelete(id, title) {
+        setPendingDelete(id, true);
+
+        swal({
             toast: true,
             position: 'bottom-end',
             icon: 'info',
@@ -215,14 +265,14 @@
             // Only a fully-elapsed timer counts as "didn't undo in time" — clicking Undo, the
             // close button, or clicking away are all treated as Undo (safer default).
             if (result.dismiss === Swal.DismissReason.timer) {
-                await commitDelete(id, row);
+                await commitDelete(id);
             } else {
-                row?.classList.remove('movie-row-pending-delete');
+                setPendingDelete(id, false);
             }
         });
     }
 
-    async function commitDelete(id, row) {
+    async function commitDelete(id) {
         try {
             const response = await fetch(`/Movies/Delete/${id}`, {
                 method: 'POST',
@@ -234,14 +284,15 @@
             });
 
             if (response.ok) {
-                row?.remove();
+                movieElements(id).forEach(el => el.remove());
+                await refreshAll();
             } else {
-                row?.classList.remove('movie-row-pending-delete');
-                await Swal.fire({ icon: 'error', title: 'Could not delete the movie.' });
+                setPendingDelete(id, false);
+                await swal({ icon: 'error', title: 'Could not delete the movie.' });
             }
         } catch (err) {
-            row?.classList.remove('movie-row-pending-delete');
-            await Swal.fire({ icon: 'error', title: 'Could not delete the movie.' });
+            setPendingDelete(id, false);
+            await swal({ icon: 'error', title: 'Could not delete the movie.' });
         }
     }
 })();
