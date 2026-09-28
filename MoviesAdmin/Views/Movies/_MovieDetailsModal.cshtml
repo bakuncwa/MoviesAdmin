@@ -32,10 +32,11 @@
                         <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@Model.AverageRating.Value.ToString("0.0")</span>
                         <span>@Model.ReviewCount @reviewWord</span>
                     }
+                    <span class="rating-badge">@Model.ContentRatingLabel</span>
                     <span>@Model.ReleaseDate.ToString("MMMM d, yyyy")</span>
                     @if (Model.RuntimeMinutes.HasValue)
                     {
-                        <span>@Model.RuntimeMinutes min</span>
+                        <span>@Model.RuntimeText</span>
                     }
                 </div>
 

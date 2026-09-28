@@ -7,6 +7,25 @@
 
 MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies abd manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
 
+## Screenshots
+
+| Movies: featured hero and poster grid | Movies: list view |
+| --- | --- |
+| ![Movies poster grid](docs/screenshots/movies-grid.png) | ![Movies list view](docs/screenshots/movies-list.png) |
+| **Movie details** | **Add/Edit movie form** |
+| ![Movie details modal](docs/screenshots/movie-details.png) | ![Edit movie form](docs/screenshots/movie-edit.png) |
+| **Delete confirmation (SweetAlert2)** | **Admin sign-in** |
+| ![Delete confirmation](docs/screenshots/movie-delete.png) | ![Login page](docs/screenshots/login.png) |
+
+## Sprint 1 Requirements
+
+| Requirement | How it's met |
+| --- | --- |
+| CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
+| Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, genres (many-to-many via `MovieGenre`, 8 seeded genres), `ContentRating` (G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
+| Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) as a poster grid or table, with "Add Movie" in the toolbar and View/Edit/Delete on each movie |
+| Good design principles and the site's brand | MoviesAdmin brand (logo mark, crimson accent, Outfit type), consistent dark-first theme, responsive layout, accessible labels and focus states |
+
 ## Technology Stack
 
 | Category | Technology | Purpose | Status |
@@ -14,7 +33,7 @@ MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing mo
 | Framework | ASP.NET Core MVC (.NET 10) | Web application framework | In use |
 | Programming language | C# | Application programming language | In use |
 | Data access | Entity Framework Core | Database access and persistence | In use |
-| Database | SQL Server 2022 (Developer Edition) in Docker | Relational database storage | In use — 5 migrations applied |
+| Database | SQL Server 2022 (Developer Edition) in Docker | Relational database storage | In use — 6 migrations applied |
 | Containerization | Docker Desktop + Docker Compose (`docker-compose.yml`) | Runs the local SQL Server with a persistent volume and health check | In use |
 | Authentication | ASP.NET Core Identity | Config-provisioned accounts, login/logout, role-based access | In use |
 | View technology | Razor Views (`.cshtml`) | Server-rendered user interface | In use |
@@ -96,12 +115,13 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 ## Code First / Database First
 
 - **Approach:** Code First — models drive the schema via EF Core migrations
-- **Schema:** Five migrations, all applied to the Docker SQL Server database:
+- **Schema:** Six migrations, all applied to the Docker SQL Server database:
   1. `InitialMoviesReviewsSchema` — ASP.NET Core Identity tables plus `Movie`, `Genre`, `MovieGenre` (many-to-many join), and `Review`, with Fluent API config for cascade/restrict deletes and a unique index on genre name.
   2. `AddMoviePosterImagePath` — adds `Movie.PosterImagePath` for an admin-uploaded poster image (kept separate from `PosterUrl`, which is reserved for posters sourced from an external movie API).
   3. `AddDirectorStudioTrailer` — adds the `Director` and `Studio` entities (each one-to-many with `Movie`, `Restrict` delete so removing one doesn't silently orphan its movies) and the `Trailer` entity (one-to-one with `Movie`, `Cascade` delete, stores just the admin-entered YouTube URL).
   4. `AddIamRoles` — seeds the `Admin` and `Viewer` roles (fixed Ids and `ConcurrencyStamp`s so the seed is deterministic).
   5. `SeedDirectorsStudios` — seeds five director/studio pairs (Joe Wright / Working Title Films, Greta Gerwig / Columbia Pictures, Christopher Nolan / Syncopy, Denis Villeneuve / Legendary Pictures, Bong Joon-ho / Barunson E&A) and a sample movie, *Pride & Prejudice* (2005), with its TMDB poster as `PosterUrl`.
+  6. `SeedGenresContentRating` — adds `Movie.ContentRating` (stored as the enum name, e.g. `PG13`), seeds eight genres (Action, Animation, Comedy, Drama, Horror, Romance, Sci-Fi, Thriller), and rates *Pride & Prejudice* PG with Drama/Romance.
 - **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`/`IDirectorRepository`/`IStudioRepository`, all registered in `Program.cs`. `Trailer` has no queries beyond plain CRUD, so it resolves through the generic `IRepository<Trailer>` registration instead of a dedicated pair.
 - **Authentication:** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Reviews links with auth-aware login/logout controls
 
@@ -117,10 +137,10 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 `MoviesController` + `Views/Movies/*` + `wwwroot/js/movies.js` implement a full CRUD screen at `/Movies`, styled after streaming sites such as Movy/Cineby:
 
 - **Featured hero (`_MovieHero.cshtml`):** the most recently added movie over a blurred copy of its poster, with View details/Edit actions. Re-fetched from `GET /Movies/Hero` after every create/edit/delete so it never shows a stale or deleted movie.
-- **Catalog (`_MovieCatalog.cshtml`):** one partial renders both a responsive poster grid (hover lift and zoom, play button to view, edit/delete bar) and a list table (poster thumbnail, title, release date, runtime, genres, average rating, and View/Edit/Delete kept together in one cell per row). A grid/list toggle switches between them and is remembered per browser. Populated by `IMovieRepository.SearchAsync`.
+- **Catalog (`_MovieCatalog.cshtml`):** every movie, sorted by release date (newest first). One partial renders both a responsive poster grid (hover lift and zoom, play button to view, edit/delete bar; year, runtime, rating badge, and genres under each poster) and a list table (poster thumbnail, title, release date, runtime, content rating, genres, review average, and View/Edit/Delete kept together in one cell per row). A grid/list toggle switches between them and is remembered per browser. Populated by `IMovieRepository.SearchAsync`.
 - **Toolbar:** search, grid/list toggle, and "Add Movie" share one sticky glass toolbar.
 - **Async search:** the search box (`#movie-search`) debounces input (300ms) and calls `GET /Movies/Search?q=...`, which validates the term against a compiled, timeout-guarded regex (`^[\p{L}\p{N}\s\-':,.&!?()]{0,200}$`) before querying, and returns the catalog partial to swap into `#movie-catalog`.
-- **Create/Edit:** "Add Movie" and each row's "Edit" button load `_MovieFormModal.cshtml` into a shared Bootstrap modal via `GET /Movies/CreateModal` / `GET /Movies/EditModal/{id}`, submitted back via `fetch()` + `FormData` (so the poster file upload works) to `POST /Movies/Create` / `POST /Movies/Edit/{id}`. A 422 response re-renders the same partial with validation messages without closing the modal. The form's image column doubles as an image-left/details-right layout, and includes Director/Studio dropdowns, a Genre checkbox list, and a Trailer YouTube URL field.
+- **Create/Edit:** "Add Movie" and each row's "Edit" button load `_MovieFormModal.cshtml` into a shared Bootstrap modal via `GET /Movies/CreateModal` / `GET /Movies/EditModal/{id}`, submitted back via `fetch()` + `FormData` (so the poster file upload works) to `POST /Movies/Create` / `POST /Movies/Edit/{id}`. A 422 response re-renders the same partial with validation messages without closing the modal. The form's image column doubles as an image-left/details-right layout, and includes a required content-rating dropdown (G/PG/PG-13/R/NC-17), runtime as separate hours and minutes inputs, Director/Studio dropdowns, a Genre checkbox list, and a Trailer YouTube URL field.
 - **View (Details):** each row's "View" button loads `_MovieDetailsModal.cshtml` via `GET /Movies/DetailsModal/{id}` — poster on the left, details (release date, runtime, director, studio, genres, rating, synopsis) on the right. If the movie has a trailer, a "Watch Trailer" button lazily fetches the `<iframe>` embed from `GET /Movies/TrailerEmbed/{id}` only when clicked, rather than embedding a YouTube player for every row up front.
 - **Delete:** a SweetAlert2 confirmation dialog (styled with the same poster-left/details-right layout, built from `data-*` attributes on the row's Delete button — no extra round trip) precedes deletion. On confirm, the row is greyed out client-side and a SweetAlert2 toast with a 10-second countdown and an "Undo" button appears; `POST /Movies/Delete/{id}` is only called if the countdown fully elapses without Undo being clicked, so nothing is actually removed from the database during the grace window.
 - **Modal styling:** `.modal-backdrop.show` gets a `backdrop-filter: blur(6px)` in `site.css` so Create/Edit/View dialogs blur the page behind them; the View modal adds a blurred-poster wash. SweetAlert2 dialogs follow the site theme (`theme: 'dark'`/`'light'`).
@@ -131,7 +151,8 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 *(Reference wireframe: Rotten Tomatoes; visual style: Movy / Cineby)*
 
 ### Core
-- [x] Movie browse page: featured hero, poster grid, and list view at `/Movies`
+- [x] Movie browse page: featured hero, poster grid, and list view at `/Movies`, sorted by release date (newest first)
+- [x] Movie data: title, synopsis, genres, content rating (G/PG/PG-13/R/NC-17), runtime in hours/minutes, release date
 - [x] Movie details: modal with poster, meta, genres, director, studio, synopsis, and lazy-loaded YouTube trailer
 - [x] Movie create/edit: modal form posted via `fetch()` through `MoviesController` into the Docker database, with server-side validation (422 re-render)
 - [x] Movie delete: SweetAlert2 confirmation plus a 10-second Undo window before anything is removed
@@ -142,12 +163,12 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - [x] Async title search (debounced, regex-validated)
 - [x] Grid/list catalog toggle, remembered per browser
 - [x] Director and studio dropdowns populated with seeded data
+- [x] Eight seeded genres, selectable as checkboxes on the form
 - [ ] Filter by genre / release year (supported in `IMovieRepository.SearchAsync`, not yet in the UI)
-- [ ] Sorting by rating or release date (`MovieSortOrder` exists, not yet in the UI)
-- [ ] Genre seed data / Genres management screen
+- [ ] User-selectable sort order (release date is the fixed default; `MovieSortOrder` also supports title and rating)
 
 ### Enabling
-- [x] Code First schema with 5 EF Core migrations applied
+- [x] Code First schema with 6 EF Core migrations applied
 - [x] SQL Server 2022 containerized with Docker Compose (persistent volume, health check)
 - [x] Repository + dependency injection pattern
 - [x] ASP.NET Core Identity login/logout

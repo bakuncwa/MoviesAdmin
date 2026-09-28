@@ -9,14 +9,15 @@
 @{
     // One Delete button definition for both views: the SweetAlert confirmation is built from these
     // data-* attributes client-side, with no extra round trip.
-    void DeleteButton(MoviesAdmin.ViewModels.Movies.MovieListItemViewModel movie, string cssClass, string releaseText, string runtimeText, string genresText)
+    void DeleteButton(MoviesAdmin.ViewModels.Movies.MovieListItemViewModel movie, string cssClass, string releaseText, string genresText)
     {
         <button type="button" class="@cssClass movie-delete-btn"
                 data-id="@movie.Id"
                 data-title="@movie.Title"
                 data-image="@movie.DisplayImageUrl"
                 data-release="@releaseText"
-                data-runtime="@runtimeText"
+                data-runtime="@movie.RuntimeText"
+                data-rating="@movie.ContentRatingLabel"
                 data-genres="@genresText"
                 title="Delete movie">
             <i class="fa-solid fa-trash" aria-hidden="true"></i><span class="visually-hidden">Delete</span>
@@ -33,12 +34,11 @@
 }
 else
 {
-    <p class="catalog-count">@Model.Count @(Model.Count == 1 ? "title" : "titles")</p>
+    <p class="catalog-count">@Model.Count @(Model.Count == 1 ? "title" : "titles") · sorted by release date, newest first</p>
 
     <div class="poster-grid catalog-grid-view">
         @foreach (var movie in Model)
         {
-            var runtimeText = movie.RuntimeMinutes.HasValue ? $"{movie.RuntimeMinutes} min" : "—";
             var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
             var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
 
@@ -57,7 +57,7 @@ else
                             <button type="button" class="icon-btn movie-edit-btn" data-id="@movie.Id" title="Edit movie">
                                 <i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
                             </button>
-                            @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, runtimeText, genresText); }
+                            @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, genresText); }
                         </div>
                     </div>
                 </div>
@@ -67,9 +67,14 @@ else
                         <span>@movie.ReleaseDate.Year</span>
                         @if (movie.RuntimeMinutes.HasValue)
                         {
-                            <span>@movie.RuntimeMinutes min</span>
+                            <span>@movie.RuntimeText</span>
                         }
+                        <span class="rating-badge">@movie.ContentRatingLabel</span>
                     </p>
+                    @if (!string.IsNullOrEmpty(movie.GenreNames))
+                    {
+                        <p class="movie-card-genres" title="@movie.GenreNames">@movie.GenreNames</p>
+                    }
                 </div>
             </article>
         }
@@ -83,15 +88,15 @@ else
                     <th scope="col">Title</th>
                     <th scope="col">Release Date</th>
                     <th scope="col">Runtime</th>
+                    <th scope="col">Rated</th>
                     <th scope="col">Genres</th>
-                    <th scope="col">Rating</th>
+                    <th scope="col">Reviews</th>
                     <th scope="col" class="text-end movie-actions-cell">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var movie in Model)
                 {
-                    var runtimeText = movie.RuntimeMinutes.HasValue ? $"{movie.RuntimeMinutes} min" : "—";
                     var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
                     var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
 
@@ -101,7 +106,8 @@ else
                         </td>
                         <td class="fw-semibold">@movie.Title</td>
                         <td>@releaseText</td>
-                        <td>@runtimeText</td>
+                        <td>@movie.RuntimeText</td>
+                        <td><span class="rating-badge">@movie.ContentRatingLabel</span></td>
                         <td>@genresText</td>
                         <td>
                             @if (movie.AverageRating.HasValue)
@@ -122,7 +128,7 @@ else
                                 <button type="button" class="icon-btn movie-edit-btn" data-id="@movie.Id" title="Edit movie">
                                     <i class="fa-solid fa-pen" aria-hidden="true"></i><span class="visually-hidden">Edit</span>
                                 </button>
-                                @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, runtimeText, genresText); }
+                                @{ DeleteButton(movie, "icon-btn icon-btn-danger", releaseText, genresText); }
                             </div>
                         </td>
                     </tr>

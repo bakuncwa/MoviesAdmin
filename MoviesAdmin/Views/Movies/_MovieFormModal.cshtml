@@ -64,10 +64,27 @@
                         <span asp-validation-for="ReleaseDate" class="text-danger small"></span>
                     </div>
                     <div class="col-sm-6 mb-3">
-                        <label asp-for="RuntimeMinutes" class="form-label"></label>
-                        <input asp-for="RuntimeMinutes" type="number" min="1" max="1000" class="form-control" />
-                        <span asp-validation-for="RuntimeMinutes" class="text-danger small"></span>
+                        <label asp-for="ContentRating" class="form-label"></label>
+                        <select asp-for="ContentRating" class="form-select">
+                            <option value="">— Choose —</option>
+                            @foreach (var rating in Enum.GetValues<MoviesAdmin.Models.ContentRating>())
+                            {
+                                <option value="@rating" selected="@(Model.ContentRating == rating)">@rating.ToLabel()</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ContentRating" class="text-danger small"></span>
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="RuntimeHours">Runtime</label>
+                    <div class="input-group">
+                        <input asp-for="RuntimeHours" type="number" min="0" max="16" class="form-control" placeholder="0" aria-label="Runtime hours" />
+                        <span class="input-group-text">h</span>
+                        <input asp-for="RuntimeMinutesPart" type="number" min="0" max="59" class="form-control" placeholder="0" aria-label="Runtime minutes" />
+                        <span class="input-group-text">m</span>
+                    </div>
+                    <span asp-validation-for="RuntimeHours" class="text-danger small d-block"></span>
+                    <span asp-validation-for="RuntimeMinutesPart" class="text-danger small d-block"></span>
                 </div>
                 <div class="row">
                     <div class="col-sm-6 mb-3">

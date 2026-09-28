@@ -64,6 +64,12 @@ namespace MoviesAdmin.Data
                 .HasIndex(s => s.Name)
                 .IsUnique();
 
+            // Stored as the enum name ("PG13") rather than an int, so the column is readable in SQL.
+            builder.Entity<Movie>()
+                .Property(m => m.ContentRating)
+                .HasConversion<string>()
+                .HasMaxLength(10);
+
             builder.Entity<Movie>()
                 .HasOne(m => m.Director)
                 .WithMany(d => d.Movies)
@@ -90,7 +96,7 @@ namespace MoviesAdmin.Data
                 // movie, so deleting the movie should take its one trailer row with it.
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // --- Reference data (SeedDirectorsStudios migration) ------------------------------
+            // --- Reference data (SeedDirectorsStudios + SeedGenresContentRating migrations) ----
             // Five directors, each paired with the studio behind one of their signature films,
             // so the Director/Studio pickers on the movie form aren't empty on a fresh database.
             builder.Entity<Director>().HasData(
@@ -120,9 +126,28 @@ namespace MoviesAdmin.Data
                     ReleaseDate = new DateTime(2005, 9, 16),
                     RuntimeMinutes = 129,
                     PosterUrl = "https://image.tmdb.org/t/p/w500/o8UhmEbWPHmTUxP0lMuCoqNkbB3.jpg",
+                    ContentRating = ContentRating.PG,
                     DirectorId = 1,
                     StudioId = 1
                 }
+            );
+
+            // Genre picker options (SeedGenresContentRating migration).
+            builder.Entity<Genre>().HasData(
+                new Genre { Id = 1, Name = "Action" },
+                new Genre { Id = 2, Name = "Animation" },
+                new Genre { Id = 3, Name = "Comedy" },
+                new Genre { Id = 4, Name = "Drama" },
+                new Genre { Id = 5, Name = "Horror" },
+                new Genre { Id = 6, Name = "Romance" },
+                new Genre { Id = 7, Name = "Sci-Fi" },
+                new Genre { Id = 8, Name = "Thriller" }
+            );
+
+            // Pride & Prejudice (2005): Drama, Romance.
+            builder.Entity<MovieGenre>().HasData(
+                new MovieGenre { MovieId = 1, GenreId = 4 },
+                new MovieGenre { MovieId = 1, GenreId = 6 }
             );
 
             // --- IAM (Identity/Access Management) setup -----------------------------------

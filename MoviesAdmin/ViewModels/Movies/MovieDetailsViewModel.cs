@@ -15,6 +15,10 @@ namespace MoviesAdmin.ViewModels.Movies
 
         public int? RuntimeMinutes { get; set; }
 
+        public string RuntimeText => MovieDisplayFormat.Runtime(RuntimeMinutes);
+
+        public string ContentRatingLabel { get; set; } = string.Empty;
+
         public string DisplayImageUrl { get; set; } = string.Empty;
 
         public List<string> GenreNames { get; set; } = new();
@@ -41,6 +45,7 @@ namespace MoviesAdmin.ViewModels.Movies
                 Synopsis = movie.Synopsis,
                 ReleaseDate = movie.ReleaseDate,
                 RuntimeMinutes = movie.RuntimeMinutes,
+                ContentRatingLabel = movie.ContentRating.ToLabel(),
                 DisplayImageUrl = MoviePosterResolver.Resolve(movie),
                 GenreNames = movie.MovieGenres
                     .Select(mg => mg.Genre.Name)

@@ -58,7 +58,7 @@ namespace MoviesAdmin.Controllers
         // GET: Movies
         public async Task<IActionResult> Index()
         {
-            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.TitleAsc);
+            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.ReleaseDateDesc);
             var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
             ViewData["Featured"] = PickFeatured(rows);
             return View(rows);
@@ -70,7 +70,7 @@ namespace MoviesAdmin.Controllers
         [HttpGet]
         public async Task<IActionResult> Hero()
         {
-            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.TitleAsc);
+            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.ReleaseDateDesc);
             var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
             return PartialView("_MovieHero", PickFeatured(rows));
         }
@@ -93,7 +93,7 @@ namespace MoviesAdmin.Controllers
                 return BadRequest(ModelState);
             }
 
-            var movies = await _movieRepository.SearchAsync(q, null, null, MovieSortOrder.TitleAsc);
+            var movies = await _movieRepository.SearchAsync(q, null, null, MovieSortOrder.ReleaseDateDesc);
             var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
             return PartialView("_MovieCatalog", rows);
         }
@@ -122,7 +122,8 @@ namespace MoviesAdmin.Controllers
                 Title = model.Title,
                 Synopsis = model.Synopsis,
                 ReleaseDate = model.ReleaseDate,
-                RuntimeMinutes = model.RuntimeMinutes,
+                RuntimeMinutes = model.TotalRuntimeMinutes,
+                ContentRating = model.ContentRating,
                 PosterUrl = model.PosterUrl,
                 DirectorId = model.DirectorId,
                 StudioId = model.StudioId
@@ -171,7 +172,7 @@ namespace MoviesAdmin.Controllers
                 Title = movie.Title,
                 Synopsis = movie.Synopsis,
                 ReleaseDate = movie.ReleaseDate,
-                RuntimeMinutes = movie.RuntimeMinutes,
+                ContentRating = movie.ContentRating,
                 PosterUrl = movie.PosterUrl,
                 ExistingPosterImagePath = movie.PosterImagePath,
                 TrailerUrl = movie.Trailer?.YouTubeUrl,
@@ -179,6 +180,7 @@ namespace MoviesAdmin.Controllers
                 StudioId = movie.StudioId,
                 SelectedGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList()
             };
+            model.SetRuntime(movie.RuntimeMinutes);
             await PopulateFormOptionsAsync(model);
 
             return PartialView("_MovieFormModal", model);
@@ -208,7 +210,8 @@ namespace MoviesAdmin.Controllers
             movie.Title = model.Title;
             movie.Synopsis = model.Synopsis;
             movie.ReleaseDate = model.ReleaseDate;
-            movie.RuntimeMinutes = model.RuntimeMinutes;
+            movie.RuntimeMinutes = model.TotalRuntimeMinutes;
+            movie.ContentRating = model.ContentRating;
             movie.PosterUrl = model.PosterUrl;
             movie.DirectorId = model.DirectorId;
             movie.StudioId = model.StudioId;

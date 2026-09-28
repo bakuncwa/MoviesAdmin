@@ -23,7 +23,12 @@ namespace MoviesAdmin.Models
         public DateTime ReleaseDate { get; set; }
 
         // Runtime in minutes; nullable since it may not be known when a movie is first added.
+        // The form collects it as hours + minutes and the UI shows it as e.g. "2h 9m".
         public int? RuntimeMinutes { get; set; }
+
+        // Audience rating such as PG-13 (see ContentRating.cs). Nullable for movies added before
+        // the field existed; the Create/Edit form requires it.
+        public ContentRating? ContentRating { get; set; }
 
         // Poster image sourced from an external movie API/site, stored as a plain link rather
         // than downloaded. Distinct from PosterImagePath (see below); a movie may have either,

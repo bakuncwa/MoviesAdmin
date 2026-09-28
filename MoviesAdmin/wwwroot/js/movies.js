@@ -205,7 +205,7 @@
     // --- Delete: SweetAlert2 confirm, then a 10-second "Undo" window before anything is removed ---
 
     async function confirmDelete(data) {
-        const { id, title, image, release, runtime, genres } = data;
+        const { id, title, image, release, runtime, rating, genres } = data;
 
         const result = await swal({
             title: 'Delete this movie?',
@@ -214,7 +214,7 @@
                     <img src="${image}" alt="${title} poster" class="rounded border flex-shrink-0" style="width: 96px; height: 144px; object-fit: cover;" />
                     <div>
                         <div class="fw-semibold mb-1">${title}</div>
-                        <div class="small text-body-secondary">${release} &middot; ${runtime}</div>
+                        <div class="small text-body-secondary">${rating} &middot; ${release} &middot; ${runtime}</div>
                         <div class="small text-body-secondary">${genres}</div>
                         <p class="mt-2 mb-0 small">You'll have 10 seconds to undo this before it's permanent.</p>
                     </div>

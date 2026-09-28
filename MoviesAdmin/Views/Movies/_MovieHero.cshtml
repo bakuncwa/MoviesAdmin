@@ -30,10 +30,11 @@ else
                     {
                         <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
                     }
+                    <span class="rating-badge">@movie.ContentRatingLabel</span>
                     <span>@movie.ReleaseDate.Year</span>
                     @if (movie.RuntimeMinutes.HasValue)
                     {
-                        <span>@movie.RuntimeMinutes min</span>
+                        <span>@movie.RuntimeText</span>
                     }
                     @if (!string.IsNullOrEmpty(movie.GenreNames))
                     {

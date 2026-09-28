@@ -17,6 +17,12 @@ namespace MoviesAdmin.ViewModels.Movies
 
         public int? RuntimeMinutes { get; set; }
 
+        // "2h 9m" style runtime, or "—" when unknown.
+        public string RuntimeText => MovieDisplayFormat.Runtime(RuntimeMinutes);
+
+        // "PG-13" style audience rating, or "Not Rated".
+        public string ContentRatingLabel { get; set; } = string.Empty;
+
         // Resolved once here so views never have to choose between PosterImagePath/PosterUrl themselves.
         public string DisplayImageUrl { get; set; } = string.Empty;
 
@@ -36,6 +42,7 @@ namespace MoviesAdmin.ViewModels.Movies
                 Synopsis = movie.Synopsis,
                 ReleaseDate = movie.ReleaseDate,
                 RuntimeMinutes = movie.RuntimeMinutes,
+                ContentRatingLabel = movie.ContentRating.ToLabel(),
                 DisplayImageUrl = MoviePosterResolver.Resolve(movie),
                 GenreNames = string.Join(", ", movie.MovieGenres
                     .Select(mg => mg.Genre.Name)
@@ -43,6 +50,24 @@ namespace MoviesAdmin.ViewModels.Movies
                 AverageRating = movie.Reviews.Count == 0 ? null : movie.Reviews.Average(r => r.Rating),
                 ReviewCount = movie.Reviews.Count
             };
+        }
+    }
+
+    // Shared display formatting for the Movies views.
+    public static class MovieDisplayFormat
+    {
+        // 129 -> "2h 9m", 120 -> "2h", 45 -> "45m", null -> "—".
+        public static string Runtime(int? totalMinutes)
+        {
+            if (totalMinutes is not > 0)
+            {
+                return "—";
+            }
+
+            var hours = totalMinutes.Value / 60;
+            var minutes = totalMinutes.Value % 60;
+            if (hours == 0) return $"{minutes}m";
+            return minutes == 0 ? $"{hours}h" : $"{hours}h {minutes}m";
         }
     }
 

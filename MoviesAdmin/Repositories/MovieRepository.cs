@@ -48,7 +48,7 @@ namespace MoviesAdmin.Repositories
 
             query = sortOrder switch
             {
-                MovieSortOrder.ReleaseDateDesc => query.OrderByDescending(m => m.ReleaseDate),
+                MovieSortOrder.ReleaseDateDesc => query.OrderByDescending(m => m.ReleaseDate).ThenBy(m => m.Title),
                 MovieSortOrder.RatingDesc => query.OrderByDescending(m => m.Reviews.Average(r => (double?)r.Rating) ?? 0),
                 _ => query.OrderBy(m => m.Title)
             };

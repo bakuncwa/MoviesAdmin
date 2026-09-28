@@ -433,7 +433,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
-.hero-meta > span + span:not(.rating-chip)::before {
+.hero-meta > span + span:not(.rating-chip):not(.rating-badge)::before {
   content: "•";
   margin-right: 0.9rem;
   opacity: 0.5;
@@ -482,6 +482,22 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--ma-star);
   font-weight: 700;
   font-size: 0.875rem;
+}
+
+/* MPAA-style audience rating ("PG-13"): an outlined box, like the certificate on a poster. */
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+  color: var(--ma-text);
+  font-size: 0.72em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  white-space: nowrap;
+  opacity: 0.85;
 }
 
 .genre-pill {
@@ -763,10 +779,23 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.8rem;
 }
 
-.movie-card-meta span + span::before {
+.movie-card-meta span + span:not(.rating-badge)::before {
   content: "•";
   margin-right: 0.5rem;
   opacity: 0.5;
+}
+
+.movie-card-meta {
+  align-items: center;
+}
+
+.movie-card-genres {
+  margin: 0.1rem 0 0;
+  color: var(--ma-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* List view ------------------------------------------------------------------------------------ */

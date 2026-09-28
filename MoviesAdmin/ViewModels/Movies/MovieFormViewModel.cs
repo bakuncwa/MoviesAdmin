@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using MoviesAdmin.Models;
 
 namespace MoviesAdmin.ViewModels.Movies
 {
@@ -7,7 +8,7 @@ namespace MoviesAdmin.ViewModels.Movies
     // Validation attributes mirror the entities they map to (Models/Movie.cs, Models/Trailer.cs)
     // so the form rejects bad input with the same rules the entity itself enforces, before
     // anything reaches the repository/DB.
-    public class MovieFormViewModel
+    public class MovieFormViewModel : IValidatableObject
     {
         public int? Id { get; set; }
 
@@ -25,9 +26,19 @@ namespace MoviesAdmin.ViewModels.Movies
         [Display(Name = "Release date")]
         public DateTime ReleaseDate { get; set; } = DateTime.Today;
 
-        [Range(1, 1000)]
-        [Display(Name = "Runtime (minutes)")]
-        public int? RuntimeMinutes { get; set; }
+        // Runtime is entered as hours + minutes and stored as a single total (Movie.RuntimeMinutes).
+        // Leaving both blank means "unknown".
+        [Range(0, 16)]
+        [Display(Name = "Hours")]
+        public int? RuntimeHours { get; set; }
+
+        [Range(0, 59)]
+        [Display(Name = "Minutes")]
+        public int? RuntimeMinutesPart { get; set; }
+
+        [Required(ErrorMessage = "Choose a rating.")]
+        [Display(Name = "Rating")]
+        public ContentRating? ContentRating { get; set; }
 
         [StringLength(500)]
         [RegularExpression(@"^https?://\S+$", ErrorMessage = "Poster URL must be a valid http:// or https:// address.")]
@@ -71,6 +82,26 @@ namespace MoviesAdmin.ViewModels.Movies
 
         [ValidateNever]
         public bool IsEdit => Id.HasValue;
+
+        // Total runtime in minutes for the entity, or null when neither box was filled in.
+        [ValidateNever]
+        public int? TotalRuntimeMinutes => RuntimeHours == null && RuntimeMinutesPart == null
+            ? null
+            : (RuntimeHours ?? 0) * 60 + (RuntimeMinutesPart ?? 0);
+
+        public void SetRuntime(int? totalMinutes)
+        {
+            RuntimeHours = totalMinutes / 60;
+            RuntimeMinutesPart = totalMinutes % 60;
+        }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (TotalRuntimeMinutes is 0)
+            {
+                yield return new ValidationResult("Runtime must be at least 1 minute (or leave both boxes blank).", new[] { nameof(RuntimeHours) });
+            }
+        }
 
         [ValidateNever]
         public string ExistingPosterImageUrl => string.IsNullOrWhiteSpace(ExistingPosterImagePath)
