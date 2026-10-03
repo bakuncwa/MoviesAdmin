@@ -75,8 +75,15 @@ builder.Services.AddScoped<IStudioRepository, StudioRepository>();
 // External movie lookup for the Add/Edit form (MovieLookupController). Each source is a typed
 // HttpClient, also exposed as IMovieLookupProvider so the form's "Source" dropdown lists them all.
 // API keys come from the "MovieLookup" section (user secrets in Development); a source without a
-// key stays listed but disabled.
+// key stays listed but disabled. Wikidata needs no key and is registered first, so it's the
+// dropdown's default.
 builder.Services.Configure<MovieLookupOptions>(builder.Configuration.GetSection(MovieLookupOptions.SectionName));
+builder.Services.AddHttpClient<WikidataLookupProvider>(client =>
+{
+    // Wikimedia's API etiquette asks every client to identify itself with a descriptive User-Agent.
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("ReelboxAdmin/1.0 (INET2005 school project; https://github.com/bakuncwa/MoviesAdmin)");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddHttpClient<TmdbLookupProvider>(client =>
 {
     client.BaseAddress = new Uri("https://api.themoviedb.org/3/");
@@ -87,6 +94,7 @@ builder.Services.AddHttpClient<OmdbLookupProvider>(client =>
     client.BaseAddress = new Uri("https://www.omdbapi.com/");
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<WikidataLookupProvider>());
 builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<TmdbLookupProvider>());
 builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<OmdbLookupProvider>());
 

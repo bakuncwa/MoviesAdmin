@@ -16,8 +16,8 @@
                 if (storedTheme === 'light' || storedTheme === 'dark') {
                     return storedTheme
                 }
-                // Dark by default: the cinematic theme is designed dark-first; light is opt-in via the toggle.
-                return 'dark'
+                // Light by default: the earth-tone theme is designed light-first; dark is opt-in via the toggle.
+                return 'light'
             }
             document.documentElement.setAttribute('data-bs-theme', getPreferredTheme())
         })()
@@ -30,6 +30,7 @@
        button icons across the site, kept small rather than vendoring the full "all" bundle. *@
     <link rel="stylesheet" href="~/lib/fontawesome/css/fontawesome.min.css" />
     <link rel="stylesheet" href="~/lib/fontawesome/css/solid.min.css" />
+    @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/MoviesAdmin.styles.css" asp-append-version="true" />
 </head>

@@ -26,7 +26,7 @@
 | CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
 | Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, genres (many-to-many via `MovieGenre`, 8 seeded genres), `ContentRating` (G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
 | Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) as a poster grid or table, with "Add Movie" in the toolbar and View/Edit/Delete on each movie |
-| Good design principles and the site's brand | Reelbox Admin brand (film logo mark, crimson "Admin" accent, Outfit type), consistent dark-first theme, responsive layout, accessible labels and focus states |
+| Good design principles and the site's brand | Reelbox Admin brand (green-to-brown film logo mark, forest-green "Admin" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
 
 ## Technology Stack
 
@@ -42,7 +42,8 @@
 | Front end | HTML5 / CSS3 / JavaScript | Front-end structure, styling, and behavior | In use |
 | UI library | Bootstrap 5.3 (vendored under `wwwroot/lib/bootstrap`) | Responsive UI components, layout, and native `data-bs-theme` light/dark color modes | In use |
 | Icons / typography | Font Awesome (solid, vendored) + Outfit (Google Fonts) | Button icons and the cinematic display type | In use |
-| UI feedback | SweetAlert2 (vendored under `wwwroot/lib/sweetalert2`) | Delete confirmation dialogs and the undo/success toasts on the Movies admin page | In use |
+| UI feedback | SweetAlert2 (vendored under `wwwroot/lib/sweetalert2`) | Delete confirmation dialogs, duplicate warnings, and the undo/success toasts on the Movies admin page | In use |
+| Searchable pickers | Tom Select 2.6 (Apache-2.0, vendored under `wwwroot/lib/tom-select`) | Director and Studio fields: type to search, or add a new entry | In use |
 | API integration | TMDB and OMDb (IMDb + Rotten Tomatoes scores) | Pre-fill the movie form: metadata, posters, trailers, and review scores | In use when API keys are configured (see [Movie lookup](#movie-lookup)); YouTube trailers embedded via `<iframe>` |
 | Secrets | .NET user secrets + git-ignored `.env` | Connection string, seed admin, and API keys kept out of `appsettings*.json` and git | In use |
 
@@ -170,12 +171,12 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 ### Enhancing
 - [x] Async title search (debounced, regex-validated)
 - [x] Grid/list catalog toggle, remembered per browser
-- [x] Director and studio dropdowns populated with seeded data
+- [x] Searchable Director and Studio pickers: type to filter, or add a new one on the spot; adding a name that already exists (ignoring case and extra spaces) shows an alert and selects the existing entry
 - [x] Eight seeded genres, selectable as checkboxes on the form
 - [x] Filter by genre, release year, and content rating
 - [x] User-selectable sort order (release date, title, review score, runtime), reflected in the URL
 - [x] Client- and server-side validation warnings with plain-English messages
-- [x] Movie lookup from TMDB or OMDb (IMDb + Rotten Tomatoes scores) to pre-fill the form, still fully editable
+- [x] Movie lookup from Wikidata + Wikipedia (no key needed), TMDB, or OMDb (IMDb + Rotten Tomatoes scores) to pre-fill the form, still fully editable
 
 ### Enabling
 - [x] Code First schema with 6 EF Core migrations applied
@@ -185,7 +186,7 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - [x] ASP.NET Core Identity login/logout
 - [x] Role-based access control: `Admin`/`Viewer` roles, `RequireAdmin` policy on `MoviesController`
 - [x] Accounts provisioned from configuration (`SeedUsers` → `IdentitySeeder`); self-registration removed
-- [x] Cinematic dark-first UI (glass navbar, hero, poster cards, themed modals and alerts)
+- [x] Earth-tone UI: forest green, warm white, and brown (glass navbar, hero, poster cards, themed modals and alerts)
 - [x] Responsive layout for desktop and mobile
 - [x] Light/dark mode toggle
 - [ ] Admin screens for Genres, Directors, Studios, and Reviews
@@ -212,24 +213,31 @@ Nothing secret lives in `appsettings*.json` or git. `.env` (git-ignored; templat
 - **Nullable vs. non-nullable:** form inputs that can be blank in the browser are nullable and marked `[Required]` where needed (e.g. `ReleaseDate`, `ContentRating`), so a blank field gets the attribute's message instead of a type error. MVC's own binding errors (letters in a number box, a non-existent enum value) are reworded in `Program.cs` (`ModelBindingMessageProvider`).
 - **Warnings in the UI:** the AJAX-loaded form is parsed by jquery-validation-unobtrusive (`wwwroot/js/validation.js` adds the custom rules and Unicode-aware regexes), so invalid fields get a red border and a ⚠ message as you type. Submitting with errors shows a "Some fields need attention" banner. The server re-checks everything (including that the director, studio, and genre ids exist) and re-renders the same warnings with HTTP 422.
 
+## Director and Studio pickers
+
+The Director and Studio fields on the Add/Edit form are searchable comboboxes ([Tom Select](https://tom-select.js.org/)). Type to filter the list, or choose **Add "…"** to create a new entry without leaving the form; it's saved right away and selected.
+
+Duplicates are blocked twice. The browser first compares the name to the list (ignoring case and extra spaces). The server then checks again in `MovieOptionsController` (`POST /MovieOptions/AddDirector`, `POST /MovieOptions/AddStudio`, Admin only, anti-forgery protected), with the unique index on `Name` as the final guard. Either way, a duplicate shows a "Director already exists" / "Studio already exists" alert and selects the existing entry. New names follow the same validation rules as the `Director` and `Studio` models.
+
 ## Movie lookup
 
 The Add/Edit form has a **Fill from an online source** panel. Choose a source, search by title (and optionally year), then pick a result to copy its details into the form. Nothing is saved until you press Save, and every field stays editable. Tick **Only fill fields that are still empty** (on by default when editing) to keep values you've already entered.
 
 | Source (dropdown) | What it fills | Review scores shown |
 | --- | --- | --- |
+| **Wikidata + Wikipedia (open data, no key)** (default) | Title, synopsis (Wikipedia lead paragraph), US release date, runtime, MPA rating, YouTube trailer, director, studio, genres; poster only when Wikimedia Commons has one | None |
 | **TMDB (The Movie Database)** | Title, synopsis, release date, runtime, US rating, poster, YouTube trailer, director, studio, genres | TMDB user score |
 | **IMDb + Rotten Tomatoes (via OMDb)** | Title, plot, release date, runtime, rating, poster, director, genres | IMDb, Rotten Tomatoes, Metacritic |
 
-IMDb and Rotten Tomatoes don't offer public APIs; OMDb is the usual way to get IMDb data and Rotten Tomatoes/Metacritic scores. Directors, studios, and genres are matched by name to existing records (TMDB's "Science Fiction" maps to "Sci-Fi"). Anything without a match is listed under the result rather than created. Review scores are shown for reference and aren't stored.
+Wikidata (CC0) and Wikipedia (CC BY-SA) are open data with public APIs, so that source works with no setup; requests identify the app with a descriptive User-Agent as Wikimedia's API policy asks. IMDb and Rotten Tomatoes don't offer public APIs; OMDb is the usual way to get IMDb data and Rotten Tomatoes/Metacritic scores. Directors, studios, and genres are matched by name to existing records ("Science Fiction" maps to "Sci-Fi"). An unmatched director or studio is listed under the result with an **Add it** button; unmatched genres are just listed. Review scores are shown for reference and aren't stored.
 
-To turn a source on, get a free key ([TMDB](https://www.themoviedb.org/settings/api): API key or read access token; [OMDb](https://www.omdbapi.com/apikey.aspx)), add it to `.env`, run `./scripts/setup-secrets.sh`, and restart the app. Sources without a key are listed but disabled. Code: `Services/MovieLookup/` (one `IMovieLookupProvider` per source, typed `HttpClient`s registered in `Program.cs`) and `Controllers/MovieLookupController.cs` (`GET /MovieLookup/Search`, `GET /MovieLookup/Details`, Admin only).
+To turn on TMDB or OMDb, get a free key ([TMDB](https://www.themoviedb.org/settings/api): API key or read access token; [OMDb](https://www.omdbapi.com/apikey.aspx)), add it to `.env`, run `./scripts/setup-secrets.sh`, and restart the app. Sources without a key are listed but disabled. Code: `Services/MovieLookup/` (one `IMovieLookupProvider` per source, typed `HttpClient`s registered in `Program.cs`) and `Controllers/MovieLookupController.cs` (`GET /MovieLookup/Search`, `GET /MovieLookup/Details`, Admin only).
 
 ## Light/Dark Mode
 
-The site is dark by default (the cinematic theme is designed dark-first), with a light variant behind the navbar toggle. It uses Bootstrap 5.3's native `data-bs-theme` color modes:
+The site uses an earth-tone palette (forest green, warm white, and brown, with terracotta for destructive actions) and is light by default, with an espresso-brown dark variant behind the navbar toggle. Text and accent colors meet WCAG AA contrast in both modes. It uses Bootstrap 5.3's native `data-bs-theme` color modes:
 
-- An inline script in `_Layout.cshtml`'s `<head>` sets `data-bs-theme` on `<html>` before first paint (a saved choice in `localStorage`, otherwise `dark`), so there's no flash on load.
+- An inline script in `_Layout.cshtml`'s `<head>` sets `data-bs-theme` on `<html>` before first paint (a saved choice in `localStorage`, otherwise `light`), so there's no flash on load.
 - The sun/moon button in the navbar (`#theme-toggle`, wired up in `wwwroot/js/site.js`) switches modes and remembers the choice in `localStorage`.
 - All custom colors are `--ma-*` tokens in `wwwroot/css/site.css`, defined for both modes; Bootstrap's `--bs-*` variables are pointed at them so stock components (forms, tables, modals) match.
 

@@ -3,8 +3,8 @@
 
 // Write your JavaScript code.
 
-// Light/dark mode toggle. The initial theme (from localStorage, otherwise dark — the cinematic
-// theme is dark-first) is already applied by the inline script in _Layout.cshtml's <head>
+// Light/dark mode toggle. The initial theme (from localStorage, otherwise light — the earth-tone
+// theme is light-first) is already applied by the inline script in _Layout.cshtml's <head>
 // before this file loads, so here we only wire up the button and keep it in sync with that state.
 (() => {
     'use strict'
@@ -17,7 +17,7 @@
         if (storedTheme === 'light' || storedTheme === 'dark') {
             return storedTheme
         }
-        return 'dark'
+        return 'light'
     }
 
     const setTheme = theme => {

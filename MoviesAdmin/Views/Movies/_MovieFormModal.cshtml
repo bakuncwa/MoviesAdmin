@@ -64,13 +64,6 @@
                     <input class="form-check-input" type="checkbox" id="lookup-only-empty" checked="@isEdit" />
                     <label class="form-check-label small" for="lookup-only-empty">Only fill fields that are still empty</label>
                 </div>
-                @if (!anyLookupSource)
-                {
-                    <p class="small text-body-secondary mb-0 mt-2">
-                        <i class="fa-solid fa-key me-1" aria-hidden="true"></i>Add a TMDB or OMDb API key to <code>.env</code> and run
-                        <code>./scripts/setup-secrets.sh</code> to turn lookups on.
-                    </p>
-                }
                 <div id="lookup-status" class="lookup-status small" aria-live="polite"></div>
                 <ul id="lookup-results" class="lookup-results" hidden></ul>
             </div>
@@ -143,7 +136,9 @@
                 <div class="row">
                     <div class="col-sm-6 mb-3">
                         <label asp-for="DirectorId" class="form-label"></label>
-                        <select asp-for="DirectorId" class="form-select">
+                        @* Enhanced into a searchable picker with an "Add ..." option by movies.js (Tom Select). *@
+                        <select asp-for="DirectorId" class="form-select" data-credit-picker="director"
+                                data-add-url="@Url.Action("AddDirector", "MovieOptions")" data-placeholder="Search or add a director...">
                             <option value="">— None —</option>
                             @foreach (var director in Model.AvailableDirectors)
                             {
@@ -154,7 +149,8 @@
                     </div>
                     <div class="col-sm-6 mb-3">
                         <label asp-for="StudioId" class="form-label"></label>
-                        <select asp-for="StudioId" class="form-select">
+                        <select asp-for="StudioId" class="form-select" data-credit-picker="studio"
+                                data-add-url="@Url.Action("AddStudio", "MovieOptions")" data-placeholder="Search or add a studio...">
                             <option value="">— None —</option>
                             @foreach (var studio in Model.AvailableStudios)
                             {

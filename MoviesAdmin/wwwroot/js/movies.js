@@ -23,8 +23,15 @@
 
     // Reset the modal body once it's fully hidden, so the next open never briefly shows stale content.
     movieModalEl.addEventListener('hidden.bs.modal', () => {
-        modalContent.innerHTML = '';
+        setModalContent('');
     });
+
+    // Every swap of the modal's content goes through here: Tom Select pickers keep their dropdown
+    // on <body>, so they're destroyed first or those dropdowns would be left behind.
+    function setModalContent(html) {
+        modalContent.querySelectorAll('select').forEach(select => select.tomselect?.destroy());
+        modalContent.innerHTML = html;
+    }
 
     function getAntiForgeryToken() {
         const tokenInput = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]');
@@ -40,7 +47,7 @@
                 await swal({ icon: 'error', title: 'Could not load that movie.', text: `Server responded with ${response.status}.` });
                 return;
             }
-            modalContent.innerHTML = await response.text();
+            setModalContent(await response.text());
             bindModalContent();
             movieModal.show();
         } catch (err) {
@@ -70,6 +77,7 @@
             // is avoids the shift; the submit handler then validates every field anyway.
             form.querySelector('button[type="submit"]')?.addEventListener('mousedown', (event) => event.preventDefault());
             bindLookupPanel(form);
+            form.querySelectorAll('select[data-credit-picker]').forEach(initCreditPicker);
         }
 
         const fileInput = modalContent.querySelector('input[type="file"]');
@@ -169,7 +177,7 @@
             }
 
             // 422 Unprocessable Entity: the server re-rendered the form with validation messages.
-            modalContent.innerHTML = await response.text();
+            setModalContent(await response.text());
             bindModalContent();
         } catch (err) {
             await swal({ icon: 'error', title: 'Something went wrong', text: 'Could not save the movie. Please try again.' });
@@ -178,7 +186,95 @@
         }
     }
 
-    // --- Lookup: pre-fill the form from TMDB / OMDb (MovieLookupController) --------------------
+    // --- Director / Studio pickers: searchable, with "Add ..." (MovieOptionsController) ----------
+
+    const normalizeName = (name) => name.trim().replace(/\s+/g, ' ');
+
+    // Turns a plain <select data-credit-picker="director|studio"> into a Tom Select combobox: type to
+    // filter, or pick "Add <name>" to create a new entry on the spot.
+    function initCreditPicker(select) {
+        if (!window.TomSelect || select.tomselect) {
+            return;
+        }
+
+        new TomSelect(select, {
+            allowEmptyOption: true,
+            placeholder: select.dataset.placeholder,
+            // While the picker is focused, site.css hides the current choice so the box shows only
+            // what's being typed; keeping the placeholder lets the empty box still say what to do.
+            hidePlaceholder: false,
+            maxOptions: 500,
+            // The modal clips overflow, and these pickers sit near its bottom edge.
+            dropdownParent: 'body',
+            create: (input, callback) => {
+                addCredit(select, input).then(option => callback(option || undefined));
+            },
+            render: {
+                option_create: (data, escape) =>
+                    `<div class="create"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>Add <strong>${escape(normalizeName(data.input))}</strong></div>`,
+                no_results: () => '<div class="no-results">No matches. Keep typing to add a new one.</div>'
+            }
+        });
+    }
+
+    // Creates a director/studio, or explains that it already exists and selects the existing one.
+    // Resolves to the new { value, text } option for Tom Select to add, or null when nothing new
+    // should be added.
+    async function addCredit(select, rawName) {
+        const kind = select.dataset.creditPicker;
+        const name = normalizeName(rawName);
+        const picker = select.tomselect;
+
+        // Instant check against what's already in the list (ignoring case and extra spaces).
+        const existing = Object.values(picker.options)
+            .find(o => o.value !== '' && normalizeName(o.text).toLowerCase() === name.toLowerCase());
+        if (existing) {
+            await showDuplicateAlert(kind, existing.text);
+            picker.setValue(existing.value);
+            return null;
+        }
+
+        try {
+            const token = select.form.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const response = await fetch(select.dataset.addUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ Name: name, __RequestVerificationToken: token })
+            });
+            const body = await response.json().catch(() => ({}));
+
+            if (response.status === 201) {
+                swal({ toast: true, position: 'top-end', icon: 'success', title: `${kind === 'director' ? 'Director' : 'Studio'} "${body.name}" added`, showConfirmButton: false, timer: 2000 });
+                return { value: String(body.id), text: body.name };
+            }
+
+            // 409: the server found it (someone may have added it since this form loaded).
+            if (response.status === 409) {
+                await showDuplicateAlert(kind, body.name);
+                if (!picker.options[String(body.id)]) {
+                    picker.addOption({ value: String(body.id), text: body.name });
+                }
+                picker.setValue(String(body.id));
+                return null;
+            }
+
+            await swal({ icon: 'error', title: `Couldn't add that ${kind}`, text: body.error || `Server responded with ${response.status}.` });
+        } catch {
+            await swal({ icon: 'error', title: `Couldn't add that ${kind}`, text: 'Could not reach the server. Please try again.' });
+        }
+        return null;
+    }
+
+    function showDuplicateAlert(kind, name) {
+        return swal({
+            icon: 'warning',
+            title: `${kind === 'director' ? 'Director' : 'Studio'} already exists`,
+            text: `"${name}" is already in the list, so it's been selected instead of adding a duplicate.`,
+            confirmButtonText: 'OK'
+        });
+    }
+
+    // --- Lookup: pre-fill the form from Wikidata / TMDB / OMDb (MovieLookupController) ----------
 
     function bindLookupPanel(form) {
         const searchBtn = form.querySelector('#lookup-search-btn');
@@ -279,8 +375,12 @@
             const field = form.querySelector(`[name="${name}"]`);
             if (!field || value === null || value === undefined || value === '') return;
             if (onlyEmpty && field.value.trim() !== '') return;
-            field.value = String(value);
-            field.dispatchEvent(new Event('change', { bubbles: true }));
+            if (field.tomselect) {
+                field.tomselect.setValue(String(value));
+            } else {
+                field.value = String(value);
+                field.dispatchEvent(new Event('change', { bubbles: true }));
+            }
             if (window.jQuery?.validator) jQuery(field).valid();
             if (label && !filled.includes(label)) filled.push(label);
         };
@@ -312,8 +412,14 @@
         if (movie.certification && !movie.contentRating) {
             notes.push(`Rated "${escapeHtml(movie.certification)}" there, which isn't one of G/PG/PG-13/R/NC-17.`);
         }
-        if (movie.unmatched.director) notes.push(`Director "${escapeHtml(movie.unmatched.director)}" isn't in the list yet.`);
-        if (movie.unmatched.studio) notes.push(`Studio "${escapeHtml(movie.unmatched.studio)}" isn't in the list yet.`);
+        const addButton = (kind, name) =>
+            ` <button type="button" class="btn btn-link btn-sm p-0 align-baseline lookup-add-credit" data-kind="${kind}" data-name="${escapeHtml(name)}">Add it</button>`;
+        if (movie.unmatched.director && !(onlyEmpty && form.querySelector('[name="DirectorId"]').value)) {
+            notes.push(`Director "${escapeHtml(movie.unmatched.director)}" isn't in the list yet.${addButton('director', movie.unmatched.director)}`);
+        }
+        if (movie.unmatched.studio && !(onlyEmpty && form.querySelector('[name="StudioId"]').value)) {
+            notes.push(`Studio "${escapeHtml(movie.unmatched.studio)}" isn't in the list yet.${addButton('studio', movie.unmatched.studio)}`);
+        }
         if (movie.unmatched.genres.length) notes.push(`No matching genre for ${movie.unmatched.genres.map(g => `"${escapeHtml(g)}"`).join(', ')}.`);
         if (movie.posterUrl && hasUploadedPoster(form)) notes.push('The uploaded poster still takes priority over the poster URL.');
 
@@ -330,6 +436,19 @@
             ${notes.map(n => `<div class="text-body-secondary"><i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>${n}</div>`).join('')}
         `);
         form.querySelector('#lookup-results').hidden = true;
+
+        // "Add it" next to an unmatched director/studio: same add-or-alert flow as the picker.
+        form.querySelectorAll('.lookup-add-credit').forEach(btn => btn.addEventListener('click', async () => {
+            const select = form.querySelector(`select[data-credit-picker="${btn.dataset.kind}"]`);
+            if (!select?.tomselect) return;
+            btn.disabled = true;
+            const option = await addCredit(select, btn.dataset.name);
+            if (option) {
+                select.tomselect.addOption(option);
+                select.tomselect.setValue(option.value);
+            }
+            btn.closest('div').remove();
+        }));
     }
 
     // --- Async search/filter/sort + refreshing the hero/catalog ---------------------------------
@@ -468,7 +587,8 @@
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Delete',
-            confirmButtonColor: '#e11d48',
+            // The theme's terracotta "danger" color, so the button matches light and dark mode.
+            confirmButtonColor: getComputedStyle(document.documentElement).getPropertyValue('--ma-danger').trim() || '#b5442c',
             cancelButtonText: 'Cancel',
             focusCancel: true
         });

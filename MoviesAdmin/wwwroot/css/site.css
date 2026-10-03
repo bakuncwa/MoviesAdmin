@@ -1,43 +1,54 @@
-/* Reelbox Admin cinematic theme -------------------------------------------------------------
-   Dark-first (see the theme bootstrap in _Layout.cshtml / site.js), with a light variant behind
-   the navbar toggle. Everything reads from the --ma-* tokens below; Bootstrap's own --bs-* vars
-   are pointed at them so stock components (forms, tables, modals) blend in too. */
+/* Reelbox Admin earth-tone theme ------------------------------------------------------------
+   Forest green, warm white, and brown. Light-first (see the theme bootstrap in _Layout.cshtml /
+   site.js), with an espresso-brown dark variant behind the navbar toggle. Everything reads from
+   the --ma-* tokens below; Bootstrap's own --bs-* vars are pointed at them so stock components
+   (forms, tables, modals) blend in too. Text/background pairs meet WCAG AA (4.5:1) in both modes. */
 
 :root,
+[data-bs-theme="light"] {
+  --ma-bg: #faf7f0;            /* warm white */
+  --ma-surface: #ffffff;
+  --ma-surface-2: #efe7d8;     /* sand */
+  --ma-border: rgba(74, 52, 36, 0.14);
+  --ma-text: #2b1d14;          /* dark brown */
+  --ma-muted: #6f5b4b;
+  --ma-accent: #2f6b3a;        /* forest green */
+  --ma-accent-rgb: 47, 107, 58;
+  --ma-accent-hover: #24552d;
+  --ma-accent-soft: rgba(47, 107, 58, 0.12);
+  --ma-on-accent: #ffffff;     /* text/icons on an accent background */
+  --ma-earth: #8b5a2b;         /* saddle brown, secondary accent */
+  --ma-earth-soft: rgba(139, 90, 43, 0.14);
+  --ma-danger: #b5442c;        /* terracotta, for destructive actions */
+  --ma-glass: rgba(250, 247, 240, 0.82);
+  --ma-glass-btn: rgba(74, 52, 36, 0.07);
+  --ma-glass-btn-hover: rgba(74, 52, 36, 0.13);
+  --ma-shadow: 0 18px 40px rgba(60, 40, 20, 0.14);
+  --ma-hero-fade: linear-gradient(90deg, rgba(250, 247, 240, 0.97) 0%, rgba(250, 247, 240, 0.85) 45%, rgba(250, 247, 240, 0.4) 100%);
+  --ma-star: #a86b12;
+}
+
 [data-bs-theme="dark"] {
-  --ma-bg: #09090d;
-  --ma-surface: #13131a;
-  --ma-surface-2: #1c1c25;
-  --ma-border: rgba(255, 255, 255, 0.08);
-  --ma-text: #f3f3f6;
-  --ma-muted: #9b9bab;
-  --ma-accent: #e11d48;
-  --ma-accent-hover: #f43f5e;
-  --ma-accent-soft: rgba(225, 29, 72, 0.16);
-  --ma-glass: rgba(9, 9, 13, 0.72);
+  --ma-bg: #17120d;            /* espresso */
+  --ma-surface: #211a13;
+  --ma-surface-2: #2c2219;
+  --ma-border: rgba(240, 228, 210, 0.1);
+  --ma-text: #f3ece0;          /* cream */
+  --ma-muted: #b3a593;
+  --ma-accent: #7fb889;        /* sage green, light enough to read on espresso */
+  --ma-accent-rgb: 127, 184, 137;
+  --ma-accent-hover: #98c9a0;
+  --ma-accent-soft: rgba(127, 184, 137, 0.16);
+  --ma-on-accent: #14100b;     /* dark text: white on sage would fail contrast */
+  --ma-earth: #c8915a;         /* caramel */
+  --ma-earth-soft: rgba(200, 145, 90, 0.16);
+  --ma-danger: #d9694f;
+  --ma-glass: rgba(23, 18, 13, 0.76);
   --ma-glass-btn: rgba(255, 255, 255, 0.1);
   --ma-glass-btn-hover: rgba(255, 255, 255, 0.18);
   --ma-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  --ma-hero-fade: linear-gradient(90deg, rgba(9, 9, 13, 0.96) 0%, rgba(9, 9, 13, 0.78) 45%, rgba(9, 9, 13, 0.35) 100%);
-  --ma-star: #fbbf24;
-}
-
-[data-bs-theme="light"] {
-  --ma-bg: #f4f4f7;
-  --ma-surface: #ffffff;
-  --ma-surface-2: #ececf2;
-  --ma-border: rgba(15, 15, 25, 0.1);
-  --ma-text: #111118;
-  --ma-muted: #5d5d6e;
-  --ma-accent: #e11d48;
-  --ma-accent-hover: #be123c;
-  --ma-accent-soft: rgba(225, 29, 72, 0.1);
-  --ma-glass: rgba(244, 244, 247, 0.78);
-  --ma-glass-btn: rgba(15, 15, 25, 0.06);
-  --ma-glass-btn-hover: rgba(15, 15, 25, 0.12);
-  --ma-shadow: 0 18px 40px rgba(20, 20, 40, 0.16);
-  --ma-hero-fade: linear-gradient(90deg, rgba(244, 244, 247, 0.97) 0%, rgba(244, 244, 247, 0.85) 45%, rgba(244, 244, 247, 0.4) 100%);
-  --ma-star: #d97706;
+  --ma-hero-fade: linear-gradient(90deg, rgba(23, 18, 13, 0.96) 0%, rgba(23, 18, 13, 0.78) 45%, rgba(23, 18, 13, 0.35) 100%);
+  --ma-star: #e0a84a;
 }
 
 [data-bs-theme] {
@@ -46,8 +57,8 @@
   --bs-secondary-color: var(--ma-muted);
   --bs-border-color: var(--ma-border);
   --bs-tertiary-bg: var(--ma-surface);
-  --bs-link-color-rgb: 244, 63, 94;
-  --bs-link-hover-color-rgb: 225, 29, 72;
+  --bs-link-color-rgb: var(--ma-accent-rgb);
+  --bs-link-hover-color-rgb: var(--ma-accent-rgb);
   --bs-body-font-family: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
   --bs-border-radius: 0.75rem;
   --bs-border-radius-lg: 1rem;
@@ -117,6 +128,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-primary {
+  --bs-btn-color: var(--ma-on-accent);
+  --bs-btn-hover-color: var(--ma-on-accent);
+  --bs-btn-active-color: var(--ma-on-accent);
+  --bs-btn-disabled-color: var(--ma-on-accent);
   --bs-btn-bg: var(--ma-accent);
   --bs-btn-border-color: var(--ma-accent);
   --bs-btn-hover-bg: var(--ma-accent-hover);
@@ -125,7 +140,7 @@ h1, h2, h3, h4, h5, h6 {
   --bs-btn-active-border-color: var(--ma-accent-hover);
   --bs-btn-disabled-bg: var(--ma-accent);
   --bs-btn-disabled-border-color: var(--ma-accent);
-  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.3);
+  box-shadow: 0 8px 24px rgba(var(--ma-accent-rgb), 0.3);
 }
 
 .btn-glass {
@@ -178,8 +193,8 @@ h1, h2, h3, h4, h5, h6 {
 .icon-btn-danger:hover,
 .icon-btn-danger:focus-visible {
   color: #fff;
-  background: var(--ma-accent);
-  border-color: var(--ma-accent);
+  background: var(--ma-danger);
+  border-color: var(--ma-danger);
 }
 
 .btn:focus-visible,
@@ -233,9 +248,10 @@ h1, h2, h3, h4, h5, h6 {
   height: 2rem;
   border-radius: 0.6rem;
   color: #fff;
-  background: linear-gradient(135deg, var(--ma-accent), #fb7185);
+  /* Green-to-brown: the brand's two earth tones in one mark. */
+  background: linear-gradient(135deg, #2f6b3a, #8b5a2b);
   font-size: 0.9rem;
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.35);
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.3);
 }
 
 .brand-mark-lg {
@@ -363,7 +379,7 @@ h1, h2, h3, h4, h5, h6 {
 .hero-landing {
   background:
     radial-gradient(60% 120% at 100% 0%, var(--ma-accent-soft), transparent 70%),
-    radial-gradient(50% 90% at 0% 100%, rgba(99, 102, 241, 0.14), transparent 70%),
+    radial-gradient(50% 90% at 0% 100%, var(--ma-earth-soft), transparent 70%),
     var(--ma-surface);
 }
 
@@ -478,7 +494,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.3rem;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
-  background: rgba(251, 191, 36, 0.14);
+  background: var(--ma-earth-soft);
   color: var(--ma-star);
   font-weight: 700;
   font-size: 0.875rem;
@@ -738,9 +754,9 @@ h1, h2, h3, h4, h5, h6 {
   border: 0;
   border-radius: 50%;
   background: var(--ma-accent);
-  color: #fff;
+  color: var(--ma-on-accent);
   font-size: 1.1rem;
-  box-shadow: 0 10px 30px rgba(225, 29, 72, 0.5);
+  box-shadow: 0 10px 30px rgba(var(--ma-accent-rgb), 0.5);
   transform: scale(0.85);
   transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease;
 }
@@ -1026,7 +1042,7 @@ h1, h2, h3, h4, h5, h6 {
   min-height: calc(100vh - 12rem);
   background:
     radial-gradient(40% 50% at 20% 20%, var(--ma-accent-soft), transparent 70%),
-    radial-gradient(40% 50% at 80% 80%, rgba(99, 102, 241, 0.14), transparent 70%);
+    radial-gradient(40% 50% at 80% 80%, var(--ma-earth-soft), transparent 70%);
   border-radius: 1.5rem;
 }
 
@@ -1212,4 +1228,80 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
   border-radius: 0.3rem;
   object-fit: cover;
+}
+
+/* Searchable Director / Studio pickers (Tom Select, see movies.js) ----------------------------- */
+
+.ts-wrapper.form-select .ts-control,
+.ts-wrapper .ts-control {
+  min-height: calc(1.5em + 0.75rem + 2px);
+  border-color: var(--ma-border);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--ma-surface-2);
+  color: var(--ma-text);
+}
+
+.ts-wrapper.focus .ts-control {
+  border-color: var(--ma-accent);
+  box-shadow: 0 0 0 0.2rem var(--ma-bg), 0 0 0 0.35rem var(--ma-accent);
+}
+
+.ts-control input {
+  color: var(--ma-text);
+}
+
+.ts-control input::placeholder {
+  color: var(--ma-muted);
+}
+
+/* Attached to <body> (dropdownParent), so it must sit above the open modal (z-index 1055). */
+.ts-dropdown {
+  z-index: 1065;
+  border-color: var(--ma-border);
+  border-radius: 0.75rem;
+  background: var(--ma-surface);
+  color: var(--ma-text);
+  box-shadow: var(--ma-shadow);
+  overflow: hidden;
+}
+
+.ts-dropdown .option,
+.ts-dropdown .create,
+.ts-dropdown .no-results {
+  padding: 0.5rem 0.85rem;
+}
+
+.ts-dropdown .active {
+  background: var(--ma-accent-soft);
+  color: var(--ma-text);
+}
+
+.ts-dropdown .create {
+  color: var(--ma-accent);
+  font-weight: 600;
+}
+
+.ts-dropdown .no-results {
+  color: var(--ma-muted);
+}
+
+/* Single-select: keep the chosen name and the search box on one line, same height as the other
+   form fields (Tom Select's default lets the search box wrap underneath). */
+.ts-wrapper.single .ts-control {
+  flex-wrap: nowrap;
+}
+
+.ts-wrapper.single .ts-control > input {
+  min-width: 0;
+}
+
+/* While searching, show only the search text; the current choice is still highlighted in the list
+   and comes back if the picker is left without choosing anything else. */
+.ts-wrapper.single.input-active .ts-control > .item {
+  display: none;
+}
+
+/* ...and when not searching, a chosen value shows on its own, without the placeholder beside it. */
+.ts-wrapper.single.has-items:not(.input-active) .ts-control > input::placeholder {
+  color: transparent;
 }

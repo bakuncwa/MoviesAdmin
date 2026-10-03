@@ -86,9 +86,14 @@
    forms carry their own token inside _MovieFormModal.cshtml). *@
 <form id="antiforgery-form" class="d-none">@Html.AntiForgeryToken()</form>
 
+@section Styles {
+    <link rel="stylesheet" href="~/lib/tom-select/dist/css/tom-select.bootstrap5.min.css" />
+}
+
 @section Scripts {
     @* Client-side validation for the Create/Edit form, which movies.js parses after loading it. *@
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
     <script src="~/js/movies.js" asp-append-version="true"></script>
 }

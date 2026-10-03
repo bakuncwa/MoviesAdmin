@@ -15,12 +15,17 @@ namespace MoviesAdmin.Controllers
     [Authorize(Policy = "RequireAdmin")]
     public class MovieLookupController : Controller
     {
-        // TMDB and OMDb name a few genres differently from the seeded list.
+        // The sources name a few genres differently from the seeded list (Wikidata genre names
+        // arrive with " film" already trimmed, e.g. "science fiction", "animated").
         private static readonly Dictionary<string, string> GenreAliases = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Science Fiction"] = "Sci-Fi",
             ["Sci Fi"] = "Sci-Fi",
-            ["Action & Adventure"] = "Action"
+            ["Action & Adventure"] = "Action",
+            ["Animated"] = "Animation",
+            ["Romantic"] = "Romance",
+            ["Romance drama"] = "Romance",
+            ["Thriller drama"] = "Thriller"
         };
 
         private readonly IEnumerable<IMovieLookupProvider> _providers;
