@@ -13,6 +13,7 @@
     const catalog = document.getElementById('movie-catalog');
     const hero = document.getElementById('movie-hero');
     const searchInput = document.getElementById('movie-search');
+    const queryForm = document.getElementById('catalog-query');
 
     // SweetAlert2 follows the site's light/dark mode (data-bs-theme on <html>, set by site.js).
     function swal(options) {
@@ -49,7 +50,27 @@
 
     function bindModalContent() {
         const form = modalContent.querySelector('#movie-form');
-        form?.addEventListener('submit', onFormSubmit);
+        if (form) {
+            form.addEventListener('submit', onFormSubmit);
+            // The form arrives via fetch(), after jquery-validation-unobtrusive scanned the page, so
+            // its data-val-* rules have to be registered by hand to get in-browser warnings.
+            if (window.jQuery?.validator?.unobtrusive) {
+                jQuery.validator.unobtrusive.parse(form);
+                // The lookup panel's search boxes aren't part of the movie, so never let them
+                // block saving.
+                const validator = jQuery(form).data('validator');
+                if (validator) {
+                    validator.settings.ignore = ':hidden, .lookup-panel :input';
+                }
+            }
+
+            // Pressing Save would otherwise blur the field being edited first, and its validation
+            // message can shift the (vertically centered) dialog so the button moves out from
+            // under the pointer before mouseup and the click never lands. Keeping focus where it
+            // is avoids the shift; the submit handler then validates every field anyway.
+            form.querySelector('button[type="submit"]')?.addEventListener('mousedown', (event) => event.preventDefault());
+            bindLookupPanel(form);
+        }
 
         const fileInput = modalContent.querySelector('input[type="file"]');
         const preview = document.getElementById('movie-form-preview');
@@ -59,6 +80,11 @@
                 preview.src = URL.createObjectURL(file);
             }
         });
+
+        // An external poster URL previews too, unless an uploaded file is chosen or already saved
+        // (uploads take display priority, see MoviePosterResolver).
+        const posterUrlInput = form?.querySelector('[name="PosterUrl"]');
+        posterUrlInput?.addEventListener('change', () => updatePosterPreview(form));
 
         // Details (View) modal: lazily fetch the trailer <iframe> only once "Watch Trailer" is clicked.
         const trailerBtn = modalContent.querySelector('.movie-trailer-btn');
@@ -89,9 +115,40 @@
         }
     }
 
+    function hasUploadedPoster(form) {
+        const fileInput = form.querySelector('input[type="file"]');
+        return !!(fileInput?.files?.length || form.querySelector('[name="ExistingPosterImagePath"]')?.value);
+    }
+
+    function updatePosterPreview(form) {
+        const preview = document.getElementById('movie-form-preview');
+        const url = form.querySelector('[name="PosterUrl"]')?.value.trim();
+        if (preview && url && /^https?:\/\//i.test(url) && !hasUploadedPoster(form)) {
+            preview.src = url;
+        }
+    }
+
+    // Client-side check before posting; the server re-validates everything regardless (422).
+    function validateForm(form) {
+        const $ = window.jQuery;
+        if (!$?.validator || $(form).valid()) {
+            return true;
+        }
+
+        const warning = form.querySelector('#movie-form-warning');
+        if (warning) {
+            warning.hidden = false;
+        }
+        form.querySelector('.input-validation-error')?.focus();
+        return false;
+    }
+
     async function onFormSubmit(event) {
         event.preventDefault();
         const form = event.target;
+        if (!validateForm(form)) {
+            return;
+        }
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn?.setAttribute('disabled', 'disabled');
 
@@ -121,16 +178,194 @@
         }
     }
 
-    // --- Async search + refreshing the hero/catalog ------------------------------------------
+    // --- Lookup: pre-fill the form from TMDB / OMDb (MovieLookupController) --------------------
+
+    function bindLookupPanel(form) {
+        const searchBtn = form.querySelector('#lookup-search-btn');
+        const queryInput = form.querySelector('#lookup-query');
+        const yearInput = form.querySelector('#lookup-year');
+        if (!searchBtn || !queryInput) {
+            return;
+        }
+
+        searchBtn.addEventListener('click', () => runLookupSearch(form));
+        // Enter in the lookup boxes searches instead of submitting the movie form.
+        [queryInput, yearInput].forEach(input => input?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                runLookupSearch(form);
+            }
+        }));
+    }
+
+    function setLookupStatus(form, html, isError = false) {
+        const status = form.querySelector('#lookup-status');
+        status.classList.toggle('text-danger', isError);
+        status.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text ?? '';
+        return div.innerHTML;
+    }
+
+    async function lookupFetch(url) {
+        const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(body.error || `Lookup failed (${response.status}).`);
+        }
+        return body;
+    }
+
+    async function runLookupSearch(form) {
+        const source = form.querySelector('#lookup-source').value;
+        const q = form.querySelector('#lookup-query').value.trim();
+        const year = form.querySelector('#lookup-year').value.trim();
+        const list = form.querySelector('#lookup-results');
+
+        if (!q) {
+            setLookupStatus(form, 'Enter a title to search for.', true);
+            return;
+        }
+
+        list.hidden = true;
+        setLookupStatus(form, '<i class="fa-solid fa-spinner fa-spin me-1" aria-hidden="true"></i>Searching...');
+
+        try {
+            const params = new URLSearchParams({ source, q });
+            if (year) params.set('year', year);
+            const results = await lookupFetch(`/MovieLookup/Search?${params}`);
+
+            if (results.length === 0) {
+                setLookupStatus(form, 'No matches. Try another spelling or remove the year.');
+                return;
+            }
+
+            list.innerHTML = results.map(r => `
+                <li>
+                    <button type="button" class="lookup-result" data-id="${escapeHtml(r.externalId)}">
+                        <img src="${escapeHtml(r.posterUrl || '/images/movies/placeholder.svg')}" alt="" loading="lazy" />
+                        <span><strong>${escapeHtml(r.title)}</strong>${r.year ? ` <span class="text-body-secondary">(${r.year})</span>` : ''}</span>
+                    </button>
+                </li>`).join('');
+            list.hidden = false;
+            list.querySelectorAll('.lookup-result').forEach(btn =>
+                btn.addEventListener('click', () => applyLookupResult(form, source, btn.dataset.id)));
+            setLookupStatus(form, `${results.length} match${results.length === 1 ? '' : 'es'}. Pick one to fill the form.`);
+        } catch (err) {
+            setLookupStatus(form, escapeHtml(err.message), true);
+        }
+    }
+
+    async function applyLookupResult(form, source, id) {
+        setLookupStatus(form, '<i class="fa-solid fa-spinner fa-spin me-1" aria-hidden="true"></i>Loading details...');
+
+        let movie;
+        try {
+            movie = await lookupFetch(`/MovieLookup/Details?${new URLSearchParams({ source, id })}`);
+        } catch (err) {
+            setLookupStatus(form, escapeHtml(err.message), true);
+            return;
+        }
+
+        const onlyEmpty = form.querySelector('#lookup-only-empty')?.checked;
+        const filled = [];
+
+        // Copies one value into the named field unless it's blank, or "only empty" is on and the
+        // field already has something. Re-validates the field so warnings update immediately.
+        const fill = (name, value, label) => {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (!field || value === null || value === undefined || value === '') return;
+            if (onlyEmpty && field.value.trim() !== '') return;
+            field.value = String(value);
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            if (window.jQuery?.validator) jQuery(field).valid();
+            if (label && !filled.includes(label)) filled.push(label);
+        };
+
+        fill('Title', movie.title, 'title');
+        fill('Synopsis', movie.synopsis, 'synopsis');
+        fill('ReleaseDate', movie.releaseDate, 'release date');
+        if (movie.runtimeHours !== null || movie.runtimeMinutes !== null) {
+            fill('RuntimeHours', movie.runtimeHours, 'runtime');
+            fill('RuntimeMinutesPart', movie.runtimeMinutes, 'runtime');
+        }
+        fill('ContentRating', movie.contentRating, 'rating');
+        fill('PosterUrl', movie.posterUrl, 'poster');
+        fill('TrailerUrl', movie.trailerUrl, 'trailer');
+        fill('DirectorId', movie.directorId, 'director');
+        fill('StudioId', movie.studioId, 'studio');
+
+        const genreBoxes = form.querySelectorAll('input[name="SelectedGenreIds"]');
+        const anyGenreChecked = Array.from(genreBoxes).some(box => box.checked);
+        if (movie.genreIds.length > 0 && !(onlyEmpty && anyGenreChecked)) {
+            genreBoxes.forEach(box => { box.checked = movie.genreIds.includes(Number(box.value)); });
+            filled.push('genres');
+        }
+
+        updatePosterPreview(form);
+
+        // Summary: what was filled, review scores from the source, and anything that didn't map.
+        const notes = [];
+        if (movie.certification && !movie.contentRating) {
+            notes.push(`Rated "${escapeHtml(movie.certification)}" there, which isn't one of G/PG/PG-13/R/NC-17.`);
+        }
+        if (movie.unmatched.director) notes.push(`Director "${escapeHtml(movie.unmatched.director)}" isn't in the list yet.`);
+        if (movie.unmatched.studio) notes.push(`Studio "${escapeHtml(movie.unmatched.studio)}" isn't in the list yet.`);
+        if (movie.unmatched.genres.length) notes.push(`No matching genre for ${movie.unmatched.genres.map(g => `"${escapeHtml(g)}"`).join(', ')}.`);
+        if (movie.posterUrl && hasUploadedPoster(form)) notes.push('The uploaded poster still takes priority over the poster URL.');
+
+        const ratings = movie.ratings.map(r => `<span class="lookup-rating">${escapeHtml(r.source)} <strong>${escapeHtml(r.value)}</strong></span>`).join('');
+        const sourceLink = movie.sourceUrl
+            ? ` <a href="${escapeHtml(movie.sourceUrl)}" target="_blank" rel="noopener noreferrer">View on source <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>`
+            : '';
+
+        setLookupStatus(form, `
+            <div><i class="fa-solid fa-circle-check text-success me-1" aria-hidden="true"></i>
+                ${filled.length ? `Filled ${filled.join(', ')} from ${escapeHtml(movie.source)}.` : 'Nothing to fill: every field already has a value.'}
+                Everything stays editable, so review it before saving.${sourceLink}</div>
+            ${ratings ? `<div class="lookup-ratings">${ratings}</div>` : ''}
+            ${notes.map(n => `<div class="text-body-secondary"><i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>${n}</div>`).join('')}
+        `);
+        form.querySelector('#lookup-results').hidden = true;
+    }
+
+    // --- Async search/filter/sort + refreshing the hero/catalog ---------------------------------
+
+    // Non-empty toolbar values as query parameters (q, genreId, year, rating, sort), matching
+    // MovieCatalogQuery on the server.
+    function catalogParams() {
+        const params = new URLSearchParams();
+        if (queryForm) {
+            for (const [key, value] of new FormData(queryForm)) {
+                if (String(value).trim() !== '') params.set(key, String(value).trim());
+            }
+        }
+        return params;
+    }
 
     async function refreshCatalog() {
-        const term = searchInput ? searchInput.value : '';
-        const response = await fetch(`/Movies/Search?q=${encodeURIComponent(term)}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const params = catalogParams();
+        const response = await fetch(`/Movies/Search?${params}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+
         if (response.ok) {
+            searchInput?.setCustomValidity('');
             catalog.innerHTML = await response.text();
+            // Keep the URL in step with the toolbar so a reload or shared link shows the same view.
+            history.replaceState(null, '', params.size ? `/Movies?${params}` : '/Movies');
+            return;
         }
-        // A non-ok response means the regex validation in MoviesController.Search rejected the
-        // term; leave the catalog showing whatever it last showed rather than clearing it.
+
+        // 400: MovieCatalogQuery's validation rejected a value (in practice, the search text).
+        // Keep the catalog as it was and show the reason on the search box.
+        if (response.status === 400 && searchInput) {
+            const errors = await response.json().catch(() => ({}));
+            const message = Object.values(errors).flat()[0] || 'That search isn\'t valid.';
+            searchInput.setCustomValidity(message);
+            searchInput.reportValidity();
+        }
     }
 
     async function refreshHero() {
@@ -147,8 +382,18 @@
 
     let searchDebounce = null;
     searchInput?.addEventListener('input', () => {
+        searchInput.setCustomValidity('');
         clearTimeout(searchDebounce);
         searchDebounce = setTimeout(refreshCatalog, 300);
+    });
+
+    // Filters and sort apply immediately; the form's normal GET submit (Enter in the search box)
+    // is replaced by the same async refresh.
+    queryForm?.querySelectorAll('select').forEach(select => select.addEventListener('change', refreshCatalog));
+    queryForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        clearTimeout(searchDebounce);
+        refreshCatalog();
     });
 
     // --- Grid/list toggle (remembered per browser; storage may be unavailable) -----------------

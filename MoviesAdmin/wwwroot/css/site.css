@@ -1,4 +1,4 @@
-/* MoviesAdmin cinematic theme ----------------------------------------------------------------
+/* Reelbox Admin cinematic theme -------------------------------------------------------------
    Dark-first (see the theme bootstrap in _Layout.cshtml / site.js), with a light variant behind
    the navbar toggle. Everything reads from the --ma-* tokens below; Bootstrap's own --bs-* vars
    are pointed at them so stock components (forms, tables, modals) blend in too. */
@@ -518,9 +518,10 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-wrap: wrap;
   margin-bottom: 1.5rem;
   padding: 0.5rem;
-  border-radius: 999px;
+  border-radius: 1.6rem;
   border: 1px solid var(--ma-border);
   background: var(--ma-glass);
   backdrop-filter: blur(18px);
@@ -532,7 +533,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  flex: 1 1 auto;
+  flex: 1 1 14rem;
   min-width: 0;
   padding: 0 1rem;
   height: 2.6rem;
@@ -557,6 +558,35 @@ h1, h2, h3, h4, h5, h6 {
 
 .search-pill input::placeholder {
   color: var(--ma-muted);
+}
+
+/* Genre / year / rating / sort dropdowns between the search pill and the view toggle. */
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.toolbar-select {
+  width: auto;
+  height: 2.6rem;
+  padding-left: 1rem;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--ma-surface-2);
+  color: var(--ma-text);
+}
+
+@media (max-width: 767.98px) {
+  /* Filters drop to their own row under the search box, two per line. */
+  .catalog-filters {
+    order: 3;
+    width: 100%;
+  }
+
+  .toolbar-select {
+    flex: 1 1 calc(50% - 0.4rem);
+  }
 }
 
 .view-toggle {
@@ -1027,4 +1057,159 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--ma-muted);
   font-size: 0.8rem;
   text-align: center;
+}
+
+/* Validation warnings -------------------------------------------------------------------------
+   jquery-validation-unobtrusive (client) and the asp-validation-for tag helpers (server, 422
+   re-render) both mark a bad field with .input-validation-error and fill its message span with
+   .field-validation-error, so one set of rules covers both. */
+
+.input-validation-error,
+.input-validation-error:focus {
+  border-color: var(--bs-form-invalid-border-color) !important;
+}
+
+.input-validation-error:focus {
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-danger-rgb), 0.25) !important;
+}
+
+.field-validation-error {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--bs-form-invalid-color);
+  font-size: 0.8125rem;
+}
+
+.field-validation-error::before {
+  content: "\f071"; /* fa-triangle-exclamation */
+  margin-right: 0.35em;
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+/* "Fix the highlighted fields" banner at the top of the movie form. */
+.form-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(var(--bs-warning-rgb), 0.4);
+  background: rgba(var(--bs-warning-rgb), 0.12);
+  color: var(--ma-text);
+  font-size: 0.875rem;
+}
+
+.form-warning[hidden] {
+  display: none;
+}
+
+.form-warning > i {
+  margin-top: 0.15rem;
+  color: var(--bs-warning);
+}
+
+.form-warning .validation-summary-errors ul,
+.form-warning ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+/* "Fill from an online source" panel on the movie form ---------------------------------------- */
+
+.lookup-panel {
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--ma-border);
+  border-radius: 0.75rem;
+  background: var(--ma-surface-2);
+}
+
+.lookup-panel > summary {
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lookup-panel > summary > i {
+  color: var(--ma-accent);
+}
+
+.lookup-body {
+  padding: 0 1rem 1rem;
+}
+
+.lookup-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lookup-controls .form-select {
+  flex: 1 1 14rem;
+}
+
+.lookup-controls input[type="search"] {
+  flex: 2 1 12rem;
+}
+
+.lookup-controls .lookup-year {
+  flex: 0 0 6rem;
+}
+
+.lookup-status:not(:empty) {
+  margin-top: 0.75rem;
+}
+
+.lookup-status > div + div {
+  margin-top: 0.35rem;
+}
+
+.lookup-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lookup-rating {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--ma-accent-soft);
+  font-size: 0.8rem;
+}
+
+.lookup-results {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 16rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.lookup-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: var(--ma-surface);
+  color: var(--ma-text);
+  text-align: left;
+}
+
+.lookup-result:hover,
+.lookup-result:focus-visible {
+  border-color: var(--ma-accent);
+}
+
+.lookup-result img {
+  width: 2.25rem;
+  height: 3.375rem;
+  flex-shrink: 0;
+  border-radius: 0.3rem;
+  object-fit: cover;
 }

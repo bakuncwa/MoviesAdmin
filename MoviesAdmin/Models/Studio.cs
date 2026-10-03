@@ -9,8 +9,8 @@ namespace MoviesAdmin.Models
 
         // Studio/distributor name (e.g. "A24", "20th Century Studios"); unique, see the index in
         // ApplicationDbContext.
-        [Required]
-        [StringLength(150)]
+        [Required(ErrorMessage = "Studio name is required.")]
+        [StringLength(150, MinimumLength = 2, ErrorMessage = "Studio name must be between {2} and {1} characters.")]
         [RegularExpression(@"^[\p{L}\p{N}\s\-&.,']+$", ErrorMessage = "Studio name can only contain letters, numbers, spaces, and common punctuation (-&.,').")]
         public string Name { get; set; } = string.Empty;
 

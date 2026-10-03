@@ -20,8 +20,8 @@ namespace MoviesAdmin.Models
         public Movie Movie { get; set; } = null!;
 
         // The trailer's YouTube link exactly as entered (watch?v=, youtu.be/, or embed/ form).
-        [Required]
-        [StringLength(500)]
+        [Required(ErrorMessage = "Trailer URL is required.")]
+        [StringLength(500, ErrorMessage = "Trailer URL can be at most {1} characters.")]
         [RegularExpression(
             @"^https?://(www\.)?(youtube\.com/(watch\?v=|embed/)|youtu\.be/)[A-Za-z0-9_\-]{6,20}([?&]\S*)?$",
             ErrorMessage = "Trailer URL must be a youtube.com or youtu.be link.")]

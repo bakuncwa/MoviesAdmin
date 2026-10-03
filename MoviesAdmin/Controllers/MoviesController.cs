@@ -1,9 +1,10 @@
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
+using MoviesAdmin.Services.MovieLookup;
+using MoviesAdmin.Validation;
 using MoviesAdmin.ViewModels.Movies;
 
 namespace MoviesAdmin.Controllers
@@ -18,17 +19,6 @@ namespace MoviesAdmin.Controllers
     public class MoviesController : Controller
     {
         private const string UploadsRelativeFolder = "images/movies";
-        private static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-        private const long MaxPosterImageBytes = 5 * 1024 * 1024; // 5 MB
-
-        // Defense-in-depth for the async search box: EF Core already parameterizes this query
-        // (SearchAsync builds a LINQ expression, not raw SQL), so this isn't preventing SQL
-        // injection so much as rejecting anything outside a safe "movie title" character set
-        // before it ever reaches the repository. Compiled + a timeout guards against ReDoS.
-        private static readonly Regex SafeSearchTermRegex = new(
-            @"^[\p{L}\p{N}\s\-':,.&!?()]{0,200}$",
-            RegexOptions.Compiled,
-            TimeSpan.FromMilliseconds(200));
 
         private readonly IMovieRepository _movieRepository;
         private readonly IGenreRepository _genreRepository;
@@ -37,6 +27,7 @@ namespace MoviesAdmin.Controllers
         // Trailer has no queries beyond plain CRUD, so it's resolved through the generic
         // IRepository<T> registration (see Program.cs) rather than a dedicated repository pair.
         private readonly IRepository<Trailer> _trailerRepository;
+        private readonly IEnumerable<IMovieLookupProvider> _lookupProviders;
         private readonly IWebHostEnvironment _environment;
 
         public MoviesController(
@@ -45,6 +36,7 @@ namespace MoviesAdmin.Controllers
             IDirectorRepository directorRepository,
             IStudioRepository studioRepository,
             IRepository<Trailer> trailerRepository,
+            IEnumerable<IMovieLookupProvider> lookupProviders,
             IWebHostEnvironment environment)
         {
             _movieRepository = movieRepository;
@@ -52,16 +44,36 @@ namespace MoviesAdmin.Controllers
             _directorRepository = directorRepository;
             _studioRepository = studioRepository;
             _trailerRepository = trailerRepository;
+            _lookupProviders = lookupProviders;
             _environment = environment;
         }
 
-        // GET: Movies
-        public async Task<IActionResult> Index()
+        // GET: Movies?q=&genreId=&year=&rating=&sort=
+        // Same query parameters as Search, so a filtered/sorted catalog survives a reload (movies.js
+        // mirrors the toolbar into the URL). A hand-edited, invalid query falls back to the defaults.
+        public async Task<IActionResult> Index([FromQuery] MovieCatalogQuery query)
         {
-            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.ReleaseDateDesc);
-            var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
-            ViewData["Featured"] = PickFeatured(rows);
-            return View(rows);
+            if (!ModelState.IsValid)
+            {
+                query = new MovieCatalogQuery();
+            }
+
+            var featured = await _movieRepository.SearchAsync(null, null, null, null, MovieSortOrder.ReleaseDateDesc);
+            ViewData["Featured"] = PickFeatured(featured.Select(MovieListItemViewModel.FromEntity));
+
+            var genres = await _genreRepository.GetAllAsync();
+            var model = new MovieCatalogViewModel
+            {
+                Query = query,
+                Movies = await SearchCatalogAsync(query),
+                GenreOptions = genres
+                    .OrderBy(g => g.Name)
+                    .Select(g => new NamedOptionViewModel { Id = g.Id, Name = g.Name })
+                    .ToList(),
+                YearOptions = await _movieRepository.GetReleaseYearsAsync()
+            };
+
+            return View(model);
         }
 
         // GET: Movies/Hero
@@ -70,32 +82,34 @@ namespace MoviesAdmin.Controllers
         [HttpGet]
         public async Task<IActionResult> Hero()
         {
-            var movies = await _movieRepository.SearchAsync(null, null, null, MovieSortOrder.ReleaseDateDesc);
-            var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
-            return PartialView("_MovieHero", PickFeatured(rows));
+            var movies = await _movieRepository.SearchAsync(null, null, null, null, MovieSortOrder.ReleaseDateDesc);
+            return PartialView("_MovieHero", PickFeatured(movies.Select(MovieListItemViewModel.FromEntity)));
         }
 
         // The hero banner features the most recently added movie (highest Id).
         private static MovieListItemViewModel? PickFeatured(IEnumerable<MovieListItemViewModel> rows) =>
             rows.OrderByDescending(m => m.Id).FirstOrDefault();
 
-        // GET: Movies/Search?q=...
-        // Async search bar: returns the catalog partial (poster grid + list table) so the client can
-        // swap #movie-catalog's content.
+        // GET: Movies/Search?q=&genreId=&year=&rating=&sort=
+        // Async toolbar (search box, filters, sort): returns the catalog partial (poster grid + list
+        // table) so the client can swap #movie-catalog's content. Validation rules for each
+        // parameter live on MovieCatalogQuery.
         [HttpGet]
-        public async Task<IActionResult> Search(string? q)
+        public async Task<IActionResult> Search([FromQuery] MovieCatalogQuery query)
         {
-            q = q?.Trim();
-
-            if (!string.IsNullOrEmpty(q) && !SafeSearchTermRegex.IsMatch(q))
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(nameof(q), "Search term can only contain letters, numbers, spaces, and common punctuation (-':,.&!?()), up to 200 characters.");
                 return BadRequest(ModelState);
             }
 
-            var movies = await _movieRepository.SearchAsync(q, null, null, MovieSortOrder.ReleaseDateDesc);
-            var rows = movies.Select(MovieListItemViewModel.FromEntity).ToList();
-            return PartialView("_MovieCatalog", rows);
+            var model = new MovieCatalogViewModel { Query = query, Movies = await SearchCatalogAsync(query) };
+            return PartialView("_MovieCatalog", model);
+        }
+
+        private async Task<List<MovieListItemViewModel>> SearchCatalogAsync(MovieCatalogQuery query)
+        {
+            var movies = await _movieRepository.SearchAsync(query.Q?.Trim(), query.GenreId, query.Year, query.Rating, query.Sort);
+            return movies.Select(MovieListItemViewModel.FromEntity).ToList();
         }
 
         // GET: Movies/CreateModal
@@ -112,6 +126,7 @@ namespace MoviesAdmin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(MovieFormViewModel model)
         {
+            await ValidateReferencesAsync(model);
             if (!ModelState.IsValid)
             {
                 return await FormValidationFailedAsync(model, existingPosterImagePath: null);
@@ -121,7 +136,7 @@ namespace MoviesAdmin.Controllers
             {
                 Title = model.Title,
                 Synopsis = model.Synopsis,
-                ReleaseDate = model.ReleaseDate,
+                ReleaseDate = model.ReleaseDate!.Value,
                 RuntimeMinutes = model.TotalRuntimeMinutes,
                 ContentRating = model.ContentRating,
                 PosterUrl = model.PosterUrl,
@@ -202,6 +217,7 @@ namespace MoviesAdmin.Controllers
                 return NotFound();
             }
 
+            await ValidateReferencesAsync(model);
             if (!ModelState.IsValid)
             {
                 return await FormValidationFailedAsync(model, movie.PosterImagePath);
@@ -209,7 +225,7 @@ namespace MoviesAdmin.Controllers
 
             movie.Title = model.Title;
             movie.Synopsis = model.Synopsis;
-            movie.ReleaseDate = model.ReleaseDate;
+            movie.ReleaseDate = model.ReleaseDate!.Value;
             movie.RuntimeMinutes = model.TotalRuntimeMinutes;
             movie.ContentRating = model.ContentRating;
             movie.PosterUrl = model.PosterUrl;
@@ -325,6 +341,30 @@ namespace MoviesAdmin.Controllers
             return PartialView("_MovieFormModal", model);
         }
 
+        // The dropdowns only offer existing ids, but a tampered post could send any number; catch
+        // that as a validation message here instead of as a foreign-key exception on save.
+        private async Task ValidateReferencesAsync(MovieFormViewModel model)
+        {
+            if (model.DirectorId.HasValue && await _directorRepository.GetByIdAsync(model.DirectorId.Value) == null)
+            {
+                ModelState.AddModelError(nameof(model.DirectorId), "That director no longer exists. Choose another from the list.");
+            }
+
+            if (model.StudioId.HasValue && await _studioRepository.GetByIdAsync(model.StudioId.Value) == null)
+            {
+                ModelState.AddModelError(nameof(model.StudioId), "That studio no longer exists. Choose another from the list.");
+            }
+
+            if (model.SelectedGenreIds.Count > 0)
+            {
+                var knownGenreIds = (await _genreRepository.GetAllAsync()).Select(g => g.Id).ToHashSet();
+                if (!model.SelectedGenreIds.All(knownGenreIds.Contains))
+                {
+                    ModelState.AddModelError(nameof(model.SelectedGenreIds), "One of the selected genres no longer exists. Reload the form and try again.");
+                }
+            }
+        }
+
         private static void AssignGenres(Movie movie, IEnumerable<int> genreIds)
         {
             foreach (var genreId in genreIds.Distinct())
@@ -354,20 +394,23 @@ namespace MoviesAdmin.Controllers
                 .OrderBy(s => s.Name)
                 .Select(s => new NamedOptionViewModel { Id = s.Id, Name = s.Name })
                 .ToList();
+
+            model.LookupSources = _lookupProviders
+                .Select(p => new LookupSourceViewModel { Key = p.Key, Name = p.DisplayName, IsAvailable = p.IsConfigured })
+                .ToList();
         }
 
+        // Type and size are already enforced by [PosterFile] on MovieFormViewModel; this re-checks
+        // because it's the last line before a user-supplied file is written under wwwroot.
         private async Task<(bool Success, string PathOrError)> TrySavePosterImageAsync(IFormFile file)
         {
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!AllowedImageExtensions.Contains(extension))
+            var posterFile = new PosterFileAttribute();
+            if (!posterFile.IsValid(file))
             {
-                return (false, "Poster image must be a .jpg, .jpeg, .png, .gif, or .webp file.");
+                return (false, posterFile.ErrorMessage!);
             }
 
-            if (file.Length == 0 || file.Length > MaxPosterImageBytes)
-            {
-                return (false, "Poster image must be larger than 0 bytes and no more than 5 MB.");
-            }
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
             var uploadsFolder = Path.Combine(_environment.WebRootPath, UploadsRelativeFolder);
             Directory.CreateDirectory(uploadsFolder);

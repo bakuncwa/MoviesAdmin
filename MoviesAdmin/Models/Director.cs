@@ -8,13 +8,13 @@ namespace MoviesAdmin.Models
         public int Id { get; set; }
 
         // Director's full name; unique, see ApplicationDbContext's index.
-        [Required]
-        [StringLength(150)]
+        [Required(ErrorMessage = "Director name is required.")]
+        [StringLength(150, MinimumLength = 2, ErrorMessage = "Director name must be between {2} and {1} characters.")]
         [RegularExpression(@"^[\p{L}\p{N}\s\-'.]+$", ErrorMessage = "Director name can only contain letters, numbers, spaces, hyphens, apostrophes, and periods.")]
         public string Name { get; set; } = string.Empty;
 
         // Optional short biography.
-        [StringLength(2000)]
+        [StringLength(2000, ErrorMessage = "Bio can be at most {1} characters.")]
         [RegularExpression(@"^[^<>]*$", ErrorMessage = "Bio cannot contain '<' or '>' characters.")]
         public string? Bio { get; set; }
 

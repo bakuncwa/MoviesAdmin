@@ -8,8 +8,8 @@ namespace MoviesAdmin.Models
         public int Id { get; set; }
 
         // Genre label (e.g. "Sci-Fi", "Action & Adventure"); unique, see ApplicationDbContext's index.
-        [Required]
-        [StringLength(50)]
+        [Required(ErrorMessage = "Genre name is required.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Genre name must be between {2} and {1} characters.")]
         [RegularExpression(@"^[\p{L}\p{N}\s\-&]+$", ErrorMessage = "Genre name can only contain letters, numbers, spaces, hyphens, and ampersands.")]
         public string Name { get; set; } = string.Empty;
 

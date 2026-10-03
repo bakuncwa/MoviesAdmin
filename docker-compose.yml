@@ -1,4 +1,6 @@
-# Local SQL Server for MoviesAdmin (matches DefaultConnection in MoviesAdmin/appsettings.Development.json).
+# Local SQL Server for MoviesAdmin. MSSQL_SA_PASSWORD and MSSQL_PORT come from .env (git-ignored; copy
+# .env.example), which scripts/setup-secrets.sh also uses to build the app's connection string in user
+# secrets, so the port compose opens and the port the app connects to are always the same value.
 #   docker compose up -d        start (waits nothing; check `docker compose ps` for "healthy")
 #   docker compose down         stop + remove the container (data survives in the named volume)
 #   docker compose down -v      ...and also delete the database volume
@@ -11,9 +13,9 @@ services:
     container_name: mssql_inet2005_701
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "2026MoviesAdmin"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env (copy .env.example)}"
     ports:
-      - "1433:1433"
+      - "${MSSQL_PORT:-1433}:1433"
     # Keeps the MoviesAdmin database across container recreation, so a `docker compose down`
     # doesn't wipe applied migrations and data the way `docker rm` on a volume-less container does.
     volumes:

@@ -4,11 +4,12 @@ namespace MoviesAdmin.ViewModels.Account
 {
     public class LoginViewModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        [StringLength(256, ErrorMessage = "Email can be at most {1} characters.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Password is required.")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 

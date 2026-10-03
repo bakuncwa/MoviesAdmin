@@ -10,6 +10,9 @@
     var formAction = isEdit
         ? Url.Action("Edit", "Movies", new { id = Model.Id })
         : Url.Action("Create", "Movies");
+    // Set on a 422 re-render; movies.js also reveals the banner when client-side validation fails.
+    var hasErrors = !ViewData.ModelState.IsValid;
+    var anyLookupSource = Model.LookupSources.Any(s => s.IsAvailable);
 }
 
 <div class="modal-header">
@@ -20,8 +23,59 @@
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
     <input type="hidden" asp-for="ExistingPosterImagePath" />
+    @* No min/max attributes on the number inputs: jQuery Validate would turn them into rules with
+       its own generic messages, ahead of the [Range] messages on the view model. *@
     <div class="modal-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+        <div id="movie-form-warning" class="form-warning" role="alert" hidden="@(!hasErrors)">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>Some fields need attention.</strong> Fix the highlighted fields below, then save again.
+                <div asp-validation-summary="ModelOnly"></div>
+            </div>
+        </div>
+
+        @* Pre-fills the fields below from an external movie database (MovieLookupController). The
+           inputs here have no name attribute, so they're never posted with the movie itself. *@
+        <details class="lookup-panel" open="@(!isEdit)">
+            <summary><i class="fa-solid fa-wand-magic-sparkles me-2" aria-hidden="true"></i>Fill from an online source</summary>
+            <div class="lookup-body">
+                <div class="lookup-controls">
+                    <label for="lookup-source" class="visually-hidden">Source</label>
+                    <select id="lookup-source" class="form-select form-select-sm">
+                        @if (!anyLookupSource)
+                        {
+                            @* Otherwise every option is disabled and the closed select shows blank. *@
+                            <option value="" selected>Source: none configured</option>
+                        }
+                        @foreach (var source in Model.LookupSources)
+                        {
+                            <option value="@source.Key" disabled="@(!source.IsAvailable)">@source.Name@(source.IsAvailable ? "" : " (no API key)")</option>
+                        }
+                    </select>
+                    <label for="lookup-query" class="visually-hidden">Title to look up</label>
+                    <input id="lookup-query" type="search" class="form-control form-control-sm" placeholder="Title" value="@Model.Title" maxlength="200" autocomplete="off" />
+                    <label for="lookup-year" class="visually-hidden">Year (optional)</label>
+                    <input id="lookup-year" type="number" class="form-control form-control-sm lookup-year" placeholder="Year" min="1888" max="2100" />
+                    <button type="button" id="lookup-search-btn" class="btn btn-sm btn-secondary" disabled="@(!anyLookupSource)">
+                        <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Search
+                    </button>
+                </div>
+                <div class="form-check form-check-sm mt-2">
+                    <input class="form-check-input" type="checkbox" id="lookup-only-empty" checked="@isEdit" />
+                    <label class="form-check-label small" for="lookup-only-empty">Only fill fields that are still empty</label>
+                </div>
+                @if (!anyLookupSource)
+                {
+                    <p class="small text-body-secondary mb-0 mt-2">
+                        <i class="fa-solid fa-key me-1" aria-hidden="true"></i>Add a TMDB or OMDb API key to <code>.env</code> and run
+                        <code>./scripts/setup-secrets.sh</code> to turn lookups on.
+                    </p>
+                }
+                <div id="lookup-status" class="lookup-status small" aria-live="polite"></div>
+                <ul id="lookup-results" class="lookup-results" hidden></ul>
+            </div>
+        </details>
+
         <div class="row g-4">
             <!-- Left: image frame -->
             <div class="col-md-4 text-center">
@@ -60,7 +114,7 @@
                 <div class="row">
                     <div class="col-sm-6 mb-3">
                         <label asp-for="ReleaseDate" class="form-label"></label>
-                        <input type="date" id="ReleaseDate" name="ReleaseDate" class="form-control" value="@Model.ReleaseDate.ToString("yyyy-MM-dd")" />
+                        <input asp-for="ReleaseDate" type="date" class="form-control" />
                         <span asp-validation-for="ReleaseDate" class="text-danger small"></span>
                     </div>
                     <div class="col-sm-6 mb-3">
@@ -78,9 +132,9 @@
                 <div class="mb-3">
                     <label class="form-label" for="RuntimeHours">Runtime</label>
                     <div class="input-group">
-                        <input asp-for="RuntimeHours" type="number" min="0" max="16" class="form-control" placeholder="0" aria-label="Runtime hours" />
+                        <input asp-for="RuntimeHours" type="number" class="form-control" placeholder="0" aria-label="Runtime hours" />
                         <span class="input-group-text">h</span>
-                        <input asp-for="RuntimeMinutesPart" type="number" min="0" max="59" class="form-control" placeholder="0" aria-label="Runtime minutes" />
+                        <input asp-for="RuntimeMinutesPart" type="number" class="form-control" placeholder="0" aria-label="Runtime minutes" />
                         <span class="input-group-text">m</span>
                     </div>
                     <span asp-validation-for="RuntimeHours" class="text-danger small d-block"></span>
@@ -96,6 +150,7 @@
                                 <option value="@director.Id" selected="@(Model.DirectorId == director.Id)">@director.Name</option>
                             }
                         </select>
+                        <span asp-validation-for="DirectorId" class="text-danger small"></span>
                     </div>
                     <div class="col-sm-6 mb-3">
                         <label asp-for="StudioId" class="form-label"></label>
@@ -106,6 +161,7 @@
                                 <option value="@studio.Id" selected="@(Model.StudioId == studio.Id)">@studio.Name</option>
                             }
                         </select>
+                        <span asp-validation-for="StudioId" class="text-danger small"></span>
                     </div>
                 </div>
                 <div class="mb-1">
@@ -128,6 +184,7 @@
                             }
                         </div>
                     }
+                    <span asp-validation-for="SelectedGenreIds" class="text-danger small"></span>
                 </div>
             </div>
         </div>

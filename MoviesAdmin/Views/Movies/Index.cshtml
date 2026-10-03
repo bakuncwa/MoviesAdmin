@@ -1,19 +1,57 @@
-@model List<MoviesAdmin.ViewModels.Movies.MovieListItemViewModel>
+@model MoviesAdmin.ViewModels.Movies.MovieCatalogViewModel
+@using MoviesAdmin.ViewModels.Movies
 
 @{
     ViewData["Title"] = "Movies";
+    var query = Model.Query;
 }
 
 <div id="movie-hero">
     @await Html.PartialAsync("_MovieHero", ViewData["Featured"] as MoviesAdmin.ViewModels.Movies.MovieListItemViewModel)
 </div>
 
-@* Sticky toolbar: search, grid/list toggle, and "Add Movie" share one row. *@
-<div class="catalog-toolbar">
+@* Sticky toolbar: search, filters, sort, grid/list toggle, and "Add Movie". The search/filter/sort
+   controls form one GET form (#catalog-query) whose fields match MovieCatalogQuery, so it also
+   works without JavaScript; movies.js submits it asynchronously to /Movies/Search instead. *@
+<form id="catalog-query" class="catalog-toolbar" method="get" asp-action="Index" role="search">
     <label for="movie-search" class="visually-hidden">Search movies</label>
     <div class="search-pill">
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-        <input type="search" id="movie-search" placeholder="Search movies by title..." autocomplete="off" />
+        <input type="search" id="movie-search" name="q" value="@query.Q" placeholder="Search movies by title..." autocomplete="off" maxlength="200" />
+    </div>
+    <div class="catalog-filters">
+        <label for="filter-genre" class="visually-hidden">Genre</label>
+        <select id="filter-genre" name="genreId" class="form-select form-select-sm toolbar-select">
+            <option value="">All genres</option>
+            @foreach (var genre in Model.GenreOptions)
+            {
+                <option value="@genre.Id" selected="@(query.GenreId == genre.Id)">@genre.Name</option>
+            }
+        </select>
+        <label for="filter-year" class="visually-hidden">Release year</label>
+        <select id="filter-year" name="year" class="form-select form-select-sm toolbar-select">
+            <option value="">Any year</option>
+            @foreach (var year in Model.YearOptions)
+            {
+                <option value="@year" selected="@(query.Year == year)">@year</option>
+            }
+        </select>
+        <label for="filter-rating" class="visually-hidden">Content rating</label>
+        <select id="filter-rating" name="rating" class="form-select form-select-sm toolbar-select">
+            <option value="">Any rating</option>
+            @foreach (var rating in Enum.GetValues<ContentRating>())
+            {
+                <option value="@rating" selected="@(query.Rating == rating)">@rating.ToLabel()</option>
+            }
+        </select>
+        <label for="catalog-sort" class="visually-hidden">Sort by</label>
+        <select id="catalog-sort" name="sort" class="form-select form-select-sm toolbar-select">
+            @foreach (var (sort, label) in MovieCatalogQuery.SortOptions)
+            {
+                <option value="@sort" selected="@(query.Sort == sort)">@label</option>
+            }
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
     </div>
     <div class="view-toggle" role="group" aria-label="Catalog layout">
         <button type="button" class="view-toggle-btn" data-catalog-view="grid" aria-pressed="true" title="Poster grid">
@@ -26,7 +64,7 @@
     <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
         <i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span class="d-none d-sm-inline">Add Movie</span>
     </button>
-</div>
+</form>
 
 <section aria-labelledby="library-heading">
     <h2 id="library-heading" class="section-heading">Library</h2>
@@ -49,6 +87,8 @@
 <form id="antiforgery-form" class="d-none">@Html.AntiForgeryToken()</form>
 
 @section Scripts {
+    @* Client-side validation for the Create/Edit form, which movies.js parses after loading it. *@
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
     <script src="~/js/movies.js" asp-append-version="true"></script>
 }

@@ -24,7 +24,7 @@ namespace MoviesAdmin.Repositories
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task<IEnumerable<Movie>> SearchAsync(string? titleQuery, int? genreId, int? releaseYear, MovieSortOrder sortOrder)
+        public async Task<IEnumerable<Movie>> SearchAsync(string? titleQuery, int? genreId, int? releaseYear, ContentRating? contentRating, MovieSortOrder sortOrder)
         {
             var query = Set
                 .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
@@ -46,14 +46,31 @@ namespace MoviesAdmin.Repositories
                 query = query.Where(m => m.ReleaseDate.Year == releaseYear.Value);
             }
 
+            if (contentRating.HasValue)
+            {
+                query = query.Where(m => m.ContentRating == contentRating.Value);
+            }
+
+            // Title is the tie-breaker everywhere so equal keys always come back in the same order.
             query = sortOrder switch
             {
                 MovieSortOrder.ReleaseDateDesc => query.OrderByDescending(m => m.ReleaseDate).ThenBy(m => m.Title),
-                MovieSortOrder.RatingDesc => query.OrderByDescending(m => m.Reviews.Average(r => (double?)r.Rating) ?? 0),
+                MovieSortOrder.ReleaseDateAsc => query.OrderBy(m => m.ReleaseDate).ThenBy(m => m.Title),
+                MovieSortOrder.TitleDesc => query.OrderByDescending(m => m.Title),
+                MovieSortOrder.RatingDesc => query.OrderByDescending(m => m.Reviews.Average(r => (double?)r.Rating) ?? 0).ThenBy(m => m.Title),
+                // Unknown runtimes sort last in both directions.
+                MovieSortOrder.RuntimeDesc => query.OrderBy(m => m.RuntimeMinutes == null).ThenByDescending(m => m.RuntimeMinutes).ThenBy(m => m.Title),
+                MovieSortOrder.RuntimeAsc => query.OrderBy(m => m.RuntimeMinutes == null).ThenBy(m => m.RuntimeMinutes).ThenBy(m => m.Title),
                 _ => query.OrderBy(m => m.Title)
             };
 
             return await query.ToListAsync();
         }
+
+        public Task<List<int>> GetReleaseYearsAsync() =>
+            Set.Select(m => m.ReleaseDate.Year)
+                .Distinct()
+                .OrderByDescending(year => year)
+                .ToListAsync();
     }
 }

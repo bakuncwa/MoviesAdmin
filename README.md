@@ -1,21 +1,23 @@
-# Movies Admin Application (MVC - ASP.NET)
+# Reelbox Admin: Movies Admin Application (MVC - ASP.NET)
 
 **Course:** INET2005 - Web Application Programming I
 **Instructor:** Michael Trumbull, Nova Scotia Community College
 
 ## Project Description
 
-MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies abd manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
+**Reelbox** is a Letterboxd-style movie logging and review site; **Reelbox Admin** (this repository, project name `MoviesAdmin`) is its back office. It's an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies and manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
 
 ## Screenshots
 
-| Movies: featured hero and poster grid | Movies: list view |
+| Movies: featured hero, filters, and poster grid | Movies: list view |
 | --- | --- |
 | ![Movies poster grid](docs/screenshots/movies-grid.png) | ![Movies list view](docs/screenshots/movies-list.png) |
 | **Movie details** | **Add/Edit movie form** |
 | ![Movie details modal](docs/screenshots/movie-details.png) | ![Edit movie form](docs/screenshots/movie-edit.png) |
 | **Delete confirmation (SweetAlert2)** | **Admin sign-in** |
 | ![Delete confirmation](docs/screenshots/movie-delete.png) | ![Login page](docs/screenshots/login.png) |
+| **Validation warnings** | |
+| ![Add movie form with validation warnings](docs/screenshots/movie-validation.png) | |
 
 ## Sprint 1 Requirements
 
@@ -24,7 +26,7 @@ MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing mo
 | CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
 | Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, genres (many-to-many via `MovieGenre`, 8 seeded genres), `ContentRating` (G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
 | Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) as a poster grid or table, with "Add Movie" in the toolbar and View/Edit/Delete on each movie |
-| Good design principles and the site's brand | MoviesAdmin brand (logo mark, crimson accent, Outfit type), consistent dark-first theme, responsive layout, accessible labels and focus states |
+| Good design principles and the site's brand | Reelbox Admin brand (film logo mark, crimson "Admin" accent, Outfit type), consistent dark-first theme, responsive layout, accessible labels and focus states |
 
 ## Technology Stack
 
@@ -41,7 +43,8 @@ MoviesAdmin is an ASP.NET Core MVC web application for managing and reviewing mo
 | UI library | Bootstrap 5.3 (vendored under `wwwroot/lib/bootstrap`) | Responsive UI components, layout, and native `data-bs-theme` light/dark color modes | In use |
 | Icons / typography | Font Awesome (solid, vendored) + Outfit (Google Fonts) | Button icons and the cinematic display type | In use |
 | UI feedback | SweetAlert2 (vendored under `wwwroot/lib/sweetalert2`) | Delete confirmation dialogs and the undo/success toasts on the Movies admin page | In use |
-| API integration | External movie APIs | Movie metadata, posters, trailers, and ratings | Possible integration; YouTube trailers embedded via `<iframe>` from an admin-entered URL are in use today |
+| API integration | TMDB and OMDb (IMDb + Rotten Tomatoes scores) | Pre-fill the movie form: metadata, posters, trailers, and review scores | In use when API keys are configured (see [Movie lookup](#movie-lookup)); YouTube trailers embedded via `<iframe>` |
+| Secrets | .NET user secrets + git-ignored `.env` | Connection string, seed admin, and API keys kept out of `appsettings*.json` and git | In use |
 
 ## CLI/Terminal Commands for Set-Up
 
@@ -55,11 +58,13 @@ Run commands from the repository root (`~/Desktop/MoviesAdmin`), one line at a t
 | --- | --- |
 | 1. Restore NuGet packages | `dotnet restore` |
 | 2. Restore the local `dotnet-ef` tool (pinned in `dotnet-tools.json`) | `dotnet tool restore` |
-| 3. Start SQL Server in Docker | `docker compose up -d` |
-| 4. Wait until the status shows `(healthy)` (~30–60s on Apple Silicon) | `docker compose ps` |
-| 5. Create the database and apply all migrations | `dotnet ef database update --project MoviesAdmin` |
-| 6. Run the app at http://localhost:5126 | `dotnet run --project MoviesAdmin` |
-| 7. Sign in | `admin@moviesadmin.local` / `MoviesAdmin2026` (from `SeedUsers` in `appsettings.Development.json`) |
+| 3. Create your local secrets file, then edit the passwords (and optionally add API keys) | `cp .env.example .env` |
+| 4. Copy `.env` into the app's user secrets (re-run whenever `.env` changes) | `./scripts/setup-secrets.sh` |
+| 5. Start SQL Server in Docker (reads the same `.env`) | `docker compose up -d` |
+| 6. Wait until the status shows `(healthy)` (~30–60s on Apple Silicon) | `docker compose ps` |
+| 7. Create the database and apply all migrations | `dotnet ef database update --project MoviesAdmin` |
+| 8. Run the app at http://localhost:5126 | `dotnet run --project MoviesAdmin` |
+| 9. Sign in | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from your `.env` |
 
 ### Day-to-day
 
@@ -74,7 +79,7 @@ Run commands from the repository root (`~/Desktop/MoviesAdmin`), one line at a t
 
 ### Docker database
 
-The container is defined in `docker-compose.yml`: image `mcr.microsoft.com/mssql/server:2022-latest` pinned to `linux/amd64` (runs under Rosetta on Apple Silicon), container name `mssql_inet2005_701`, host port `1433`, and data in the named volume `moviesadmin_mssql-data`. The app connects through `DefaultConnection` in `appsettings.Development.json` (`Server=localhost,1433;Database=MoviesAdmin;User Id=sa;...`).
+The container is defined in `docker-compose.yml`: image `mcr.microsoft.com/mssql/server:2022-latest` pinned to `linux/amd64` (runs under Rosetta on Apple Silicon), container name `mssql_inet2005_701`, host port `MSSQL_PORT` from `.env` (default `1433`), and data in the named volume `moviesadmin_mssql-data`. The app connects through `ConnectionStrings:DefaultConnection` in user secrets, which `scripts/setup-secrets.sh` builds from the same `MSSQL_PORT` and `MSSQL_SA_PASSWORD`, so the port Docker opens and the port the app connects to always match. See [Configuration and secrets](#configuration-and-secrets).
 
 | Task | Command |
 | --- | --- |
@@ -84,15 +89,16 @@ The container is defined in `docker-compose.yml`: image `mcr.microsoft.com/mssql
 | Restart | `docker compose restart mssql` |
 | Stop and remove the container (volume kept) | `docker compose down` |
 | **Delete everything, including the database volume** | `docker compose down -v` |
-| Open an interactive SQL shell | `docker exec -it mssql_inet2005_701 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 2026MoviesAdmin -C -d MoviesAdmin` |
-| Run a one-off query | `docker exec mssql_inet2005_701 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 2026MoviesAdmin -C -d MoviesAdmin -Q "SELECT Id, Title FROM Movies"` |
+| Open an interactive SQL shell (uses the container's own `MSSQL_SA_PASSWORD`) | `docker exec -it mssql_inet2005_701 bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d MoviesAdmin'` |
+| Run a one-off query | `docker exec mssql_inet2005_701 bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d MoviesAdmin -Q "SELECT Id, Title FROM Movies"'` |
 | Check what holds port 1433 | `docker ps --filter publish=1433` |
 | Pull a newer SQL Server image, then recreate | `docker compose pull` then `docker compose up -d` |
 
-To change the container (e.g. the SA password or host port), edit `docker-compose.yml` and run `docker compose up -d` again. Compose recreates the container and keeps the volume. If you change the SA password, update `DefaultConnection` too. SQL Server only reads `MSSQL_SA_PASSWORD` when it first creates the `master` database, so an existing volume keeps its old password until you run `docker compose down -v`.
+To change the SA password or host port, edit `.env`, run `./scripts/setup-secrets.sh`, then `docker compose up -d`. Compose recreates the container and keeps the volume. SQL Server only reads `MSSQL_SA_PASSWORD` when it first creates the `master` database, so an existing volume keeps its old password until you run `docker compose down -v`.
 
 Troubleshooting:
-- **`Bind for 0.0.0.0:1433 failed: port is already allocated`**: another container already uses 1433. Find it with `docker ps --filter publish=1433` and stop it with `docker stop <name>`.
+- **`Bind for 0.0.0.0:1433 failed: port is already allocated`**: another container already uses 1433. Find it with `docker ps --filter publish=1433` and stop it with `docker stop <name>`, or set a different `MSSQL_PORT` in `.env` and re-run `./scripts/setup-secrets.sh`.
+- **`ConnectionStrings:DefaultConnection is not configured`** on startup: user secrets haven't been written yet. Run `./scripts/setup-secrets.sh`.
 - **`Login timeout expired` right after starting**: SQL Server is still booting under emulation. Wait for `(healthy)`.
 - **`WARNING: The requested image's platform (linux/amd64) does not match...`**: harmless. Compose pins the platform, so it only appears with a hand-typed `docker run`.
 
@@ -130,7 +136,7 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - **No self-registration.** `AccountController` only signs in/out. Every account is declared in the `SeedUsers` configuration section (email, password, display name, and **role**), and `Data/IdentitySeeder.cs` creates any missing account on startup and assigns its role. Existing passwords are never overwritten from config.
 - **Roles** `Admin` and `Viewer` are seeded via `HasData` in `ApplicationDbContext` (migration `AddIamRoles`, with fixed `ConcurrencyStamp`s so the seed is deterministic).
 - `Program.cs` registers a `"RequireAdmin"` policy; `MoviesController` is gated behind it, so only `Admin` accounts can manage movies. Anonymous visitors are redirected to `/Account/Login`; other roles get `/Account/AccessDenied`.
-- Development credentials live in `appsettings.Development.json` (`admin@moviesadmin.local`). For anything beyond local development, supply `SeedUsers` through user secrets or environment variables (e.g. `SeedUsers__0__Password`) instead of committing them.
+- Credentials are never committed: in development the seed admin comes from `.env` via user secrets (`SeedUsers:0:*`); elsewhere, supply environment variables such as `SeedUsers__0__Password`.
 
 ## Movies Admin CRUD
 
@@ -138,13 +144,15 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 
 - **Featured hero (`_MovieHero.cshtml`):** the most recently added movie over a blurred copy of its poster, with View details/Edit actions. Re-fetched from `GET /Movies/Hero` after every create/edit/delete so it never shows a stale or deleted movie.
 - **Catalog (`_MovieCatalog.cshtml`):** every movie, sorted by release date (newest first). One partial renders both a responsive poster grid (hover lift and zoom, play button to view, edit/delete bar; year, runtime, rating badge, and genres under each poster) and a list table (poster thumbnail, title, release date, runtime, content rating, genres, review average, and View/Edit/Delete kept together in one cell per row). A grid/list toggle switches between them and is remembered per browser. Populated by `IMovieRepository.SearchAsync`.
-- **Toolbar:** search, grid/list toggle, and "Add Movie" share one sticky glass toolbar.
-- **Async search:** the search box (`#movie-search`) debounces input (300ms) and calls `GET /Movies/Search?q=...`, which validates the term against a compiled, timeout-guarded regex (`^[\p{L}\p{N}\s\-':,.&!?()]{0,200}$`) before querying, and returns the catalog partial to swap into `#movie-catalog`.
+- **Toolbar:** search, genre/year/rating filters, sort order, grid/list toggle, and "Add Movie" share one sticky glass toolbar (filters wrap to their own row on phones).
+- **Async search, filter, and sort:** the toolbar is a GET form whose fields bind to `MovieCatalogQuery` (`q`, `genreId`, `year`, `rating`, `sort`). Typing in the search box (debounced 300ms) or changing a dropdown calls `GET /Movies/Search?...`, which validates every parameter through data annotations on `MovieCatalogQuery` (the search text against a timeout-guarded regex) and returns the catalog partial to swap into `#movie-catalog`. The filters and sort are applied in SQL by `IMovieRepository.SearchAsync` before `ToListAsync()`. The URL is kept in step (`/Movies?genreId=4&sort=TitleAsc`), so reloads and shared links keep the view. Sort options: release date (newest/oldest), title (A–Z/Z–A), review score, and runtime (longest/shortest).
+- **Validation:** see [Validation](#validation).
+- **Online lookup:** see [Movie lookup](#movie-lookup).
 - **Create/Edit:** "Add Movie" and each row's "Edit" button load `_MovieFormModal.cshtml` into a shared Bootstrap modal via `GET /Movies/CreateModal` / `GET /Movies/EditModal/{id}`, submitted back via `fetch()` + `FormData` (so the poster file upload works) to `POST /Movies/Create` / `POST /Movies/Edit/{id}`. A 422 response re-renders the same partial with validation messages without closing the modal. The form's image column doubles as an image-left/details-right layout, and includes a required content-rating dropdown (G/PG/PG-13/R/NC-17), runtime as separate hours and minutes inputs, Director/Studio dropdowns, a Genre checkbox list, and a Trailer YouTube URL field.
 - **View (Details):** each row's "View" button loads `_MovieDetailsModal.cshtml` via `GET /Movies/DetailsModal/{id}` — poster on the left, details (release date, runtime, director, studio, genres, rating, synopsis) on the right. If the movie has a trailer, a "Watch Trailer" button lazily fetches the `<iframe>` embed from `GET /Movies/TrailerEmbed/{id}` only when clicked, rather than embedding a YouTube player for every row up front.
 - **Delete:** a SweetAlert2 confirmation dialog (styled with the same poster-left/details-right layout, built from `data-*` attributes on the row's Delete button — no extra round trip) precedes deletion. On confirm, the row is greyed out client-side and a SweetAlert2 toast with a 10-second countdown and an "Undo" button appears; `POST /Movies/Delete/{id}` is only called if the countdown fully elapses without Undo being clicked, so nothing is actually removed from the database during the grace window.
 - **Modal styling:** `.modal-backdrop.show` gets a `backdrop-filter: blur(6px)` in `site.css` so Create/Edit/View dialogs blur the page behind them; the View modal adds a blurred-poster wash. SweetAlert2 dialogs follow the site theme (`theme: 'dark'`/`'light'`).
-- **Poster images:** uploaded files are validated (`.jpg/.jpeg/.png/.gif/.webp`, ≤5MB) and saved under `wwwroot/images/movies/` with a generated filename; `Movie.PosterImagePath` takes display priority over `Movie.PosterUrl`, which falls back to a generated placeholder SVG when neither is set.
+- **Poster images:** uploaded files are validated by `[PosterFile]` (`.jpg/.jpeg/.png/.gif/.webp`, ≤5MB, checked in the browser and on the server) and saved under `wwwroot/images/movies/` with a generated filename; `Movie.PosterImagePath` takes display priority over `Movie.PosterUrl`, which falls back to a generated placeholder SVG when neither is set.
 
 ## Current Core, Enhancing, and Enabling Features
 
@@ -164,11 +172,14 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - [x] Grid/list catalog toggle, remembered per browser
 - [x] Director and studio dropdowns populated with seeded data
 - [x] Eight seeded genres, selectable as checkboxes on the form
-- [ ] Filter by genre / release year (supported in `IMovieRepository.SearchAsync`, not yet in the UI)
-- [ ] User-selectable sort order (release date is the fixed default; `MovieSortOrder` also supports title and rating)
+- [x] Filter by genre, release year, and content rating
+- [x] User-selectable sort order (release date, title, review score, runtime), reflected in the URL
+- [x] Client- and server-side validation warnings with plain-English messages
+- [x] Movie lookup from TMDB or OMDb (IMDb + Rotten Tomatoes scores) to pre-fill the form, still fully editable
 
 ### Enabling
 - [x] Code First schema with 6 EF Core migrations applied
+- [x] Secrets out of source control: connection string, seed admin, and API keys in user secrets, fed from a git-ignored `.env` shared with Docker Compose
 - [x] SQL Server 2022 containerized with Docker Compose (persistent volume, health check)
 - [x] Repository + dependency injection pattern
 - [x] ASP.NET Core Identity login/logout
@@ -179,6 +190,40 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - [x] Light/dark mode toggle
 - [ ] Admin screens for Genres, Directors, Studios, and Reviews
 - [ ] Containerize the ASP.NET app itself (Dockerfile + compose service)
+
+## Configuration and secrets
+
+Nothing secret lives in `appsettings*.json` or git. `.env` (git-ignored; template in `.env.example`) is the single local source:
+
+| `.env` value | Used by |
+| --- | --- |
+| `MSSQL_PORT`, `MSSQL_SA_PASSWORD` | `docker-compose.yml` (published port and SA password) **and** the connection string |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_DISPLAY_NAME` | `SeedUsers:0:*`, read by `Data/IdentitySeeder.cs` |
+| `TMDB_API_KEY`, `OMDB_API_KEY` (optional) | `MovieLookup:TmdbApiKey` / `MovieLookup:OmdbApiKey` |
+
+`scripts/setup-secrets.sh` writes these into the project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) (`UserSecretsId` in `MoviesAdmin.csproj`; stored under `~/.microsoft/usersecrets/`), which ASP.NET Core and `dotnet ef` load automatically in Development. Inspect them with `dotnet user-secrets list --project MoviesAdmin`. Outside Development, use environment variables (`ConnectionStrings__DefaultConnection`, `SeedUsers__0__Password`, `MovieLookup__TmdbApiKey`, ...). The app stops at startup with a clear message if the connection string is missing.
+
+> Older commits contain the previous development SA and admin passwords in `appsettings.Development.json`. Treat those values as public and choose new ones in `.env`. A new SA password only applies to a fresh volume (`docker compose down -v`).
+
+## Validation
+
+- **Annotations with messages:** every input rule on the form and entity models (`[Required]`, `[StringLength]` with min/max, `[Range]`, `[RegularExpression]`, `[EnumDataType]`) has its own message, e.g. "Title must be between 1 and 200 characters." or "Minutes must be between 0 and 59."
+- **Custom attributes** (`Validation/`): `[ReleaseDate]` (between 14 Oct 1888 and five years from today) and `[PosterFile]` (image type and ≤5 MB). Both validate on the server and emit `data-val-*` rules for the browser.
+- **Nullable vs. non-nullable:** form inputs that can be blank in the browser are nullable and marked `[Required]` where needed (e.g. `ReleaseDate`, `ContentRating`), so a blank field gets the attribute's message instead of a type error. MVC's own binding errors (letters in a number box, a non-existent enum value) are reworded in `Program.cs` (`ModelBindingMessageProvider`).
+- **Warnings in the UI:** the AJAX-loaded form is parsed by jquery-validation-unobtrusive (`wwwroot/js/validation.js` adds the custom rules and Unicode-aware regexes), so invalid fields get a red border and a ⚠ message as you type. Submitting with errors shows a "Some fields need attention" banner. The server re-checks everything (including that the director, studio, and genre ids exist) and re-renders the same warnings with HTTP 422.
+
+## Movie lookup
+
+The Add/Edit form has a **Fill from an online source** panel. Choose a source, search by title (and optionally year), then pick a result to copy its details into the form. Nothing is saved until you press Save, and every field stays editable. Tick **Only fill fields that are still empty** (on by default when editing) to keep values you've already entered.
+
+| Source (dropdown) | What it fills | Review scores shown |
+| --- | --- | --- |
+| **TMDB (The Movie Database)** | Title, synopsis, release date, runtime, US rating, poster, YouTube trailer, director, studio, genres | TMDB user score |
+| **IMDb + Rotten Tomatoes (via OMDb)** | Title, plot, release date, runtime, rating, poster, director, genres | IMDb, Rotten Tomatoes, Metacritic |
+
+IMDb and Rotten Tomatoes don't offer public APIs; OMDb is the usual way to get IMDb data and Rotten Tomatoes/Metacritic scores. Directors, studios, and genres are matched by name to existing records (TMDB's "Science Fiction" maps to "Sci-Fi"). Anything without a match is listed under the result rather than created. Review scores are shown for reference and aren't stored.
+
+To turn a source on, get a free key ([TMDB](https://www.themoviedb.org/settings/api): API key or read access token; [OMDb](https://www.omdbapi.com/apikey.aspx)), add it to `.env`, run `./scripts/setup-secrets.sh`, and restart the app. Sources without a key are listed but disabled. Code: `Services/MovieLookup/` (one `IMovieLookupProvider` per source, typed `HttpClient`s registered in `Program.cs`) and `Controllers/MovieLookupController.cs` (`GET /MovieLookup/Search`, `GET /MovieLookup/Details`, Admin only).
 
 ## Light/Dark Mode
 

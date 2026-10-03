@@ -13,18 +13,18 @@ namespace MoviesAdmin.Models
         public Movie Movie { get; set; } = null!;
 
         // FK to the reviewer's Identity user id (ApplicationUser.Id, a string key).
-        [Required]
+        [Required(ErrorMessage = "A review must belong to a user.")]
         [RegularExpression(@"^[A-Za-z0-9\-]+$", ErrorMessage = "UserId must be a valid Identity key (letters, numbers, and hyphens only).")]
         public string UserId { get; set; } = string.Empty;
         // Navigation to the reviewer.
         public ApplicationUser User { get; set; } = null!;
 
         // Star rating on a 1-5 scale; feeds Movie.AverageRating.
-        [Range(1, 5)]
+        [Range(1, 5, ErrorMessage = "Rating must be between {1} and {2} stars.")]
         public int Rating { get; set; }
 
         // Optional free-text review comment.
-        [StringLength(2000)]
+        [StringLength(2000, ErrorMessage = "Comment can be at most {1} characters.")]
         [RegularExpression(@"^[^<>]*$", ErrorMessage = "Comment cannot contain '<' or '>' characters.")]
         public string? Comment { get; set; }
 

@@ -8,14 +8,14 @@
     <div class="auth-card">
         <span class="brand-mark brand-mark-lg" aria-hidden="true"><i class="fa-solid fa-film"></i></span>
         <h1 class="auth-title">Welcome back</h1>
-        <p class="auth-subtitle">Sign in with your administrator account.</p>
+        <p class="auth-subtitle">Sign in to Reelbox Admin with your administrator account.</p>
 
         <form asp-controller="Account" asp-action="Login" method="post">
             <input type="hidden" asp-for="ReturnUrl" />
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="mb-3">
                 <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control form-control-lg" autocomplete="username" placeholder="admin@moviesadmin.local" />
+                <input asp-for="Email" class="form-control form-control-lg" autocomplete="username" placeholder="you@example.com" />
                 <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
             <div class="mb-3">

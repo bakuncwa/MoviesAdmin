@@ -9,38 +9,41 @@ namespace MoviesAdmin.Models
         public int Id { get; set; }
 
         // Movie's display title, shown everywhere (table rows, modals, search results).
-        [Required]
-        [StringLength(200)]
+        [Required(ErrorMessage = "Title is required.")]
+        [StringLength(200, MinimumLength = 1, ErrorMessage = "Title must be between {2} and {1} characters.")]
         [RegularExpression(@"^[\p{L}\p{N}\s\-':,.&!?()]+$", ErrorMessage = "Title can only contain letters, numbers, spaces, and common punctuation (-':,.&!?()).")]
         public string Title { get; set; } = string.Empty;
 
         // Optional plot summary/blurb shown on the Details view.
-        [StringLength(2000)]
+        [StringLength(2000, ErrorMessage = "Synopsis can be at most {1} characters.")]
         [RegularExpression(@"^[^<>]*$", ErrorMessage = "Synopsis cannot contain '<' or '>' characters.")]
         public string? Synopsis { get; set; }
 
         // Theatrical/original release date; also used for year-based search/filter and sorting.
+        [DataType(DataType.Date)]
         public DateTime ReleaseDate { get; set; }
 
         // Runtime in minutes; nullable since it may not be known when a movie is first added.
         // The form collects it as hours + minutes and the UI shows it as e.g. "2h 9m".
+        [Range(1, 960, ErrorMessage = "Runtime must be between {1} and {2} minutes.")]
         public int? RuntimeMinutes { get; set; }
 
         // Audience rating such as PG-13 (see ContentRating.cs). Nullable for movies added before
         // the field existed; the Create/Edit form requires it.
+        [EnumDataType(typeof(ContentRating), ErrorMessage = "Content rating must be G, PG, PG-13, R, or NC-17.")]
         public ContentRating? ContentRating { get; set; }
 
         // Poster image sourced from an external movie API/site, stored as a plain link rather
         // than downloaded. Distinct from PosterImagePath (see below); a movie may have either,
         // both, or neither, with PosterImagePath taking display priority when both are set.
-        [StringLength(500)]
+        [StringLength(500, ErrorMessage = "Poster URL can be at most {1} characters.")]
         [RegularExpression(@"^https?://\S+$", ErrorMessage = "Poster URL must be a valid http:// or https:// address.")]
         public string? PosterUrl { get; set; }
 
         // Relative path (under wwwroot, e.g. "images/movies/inception.jpg") to a poster image uploaded
         // through the admin UI. Distinct from PosterUrl, which is reserved for posters sourced from an
         // external movie API. Views should fall back to PosterUrl when this is null.
-        [StringLength(500)]
+        [StringLength(500, ErrorMessage = "Poster image path can be at most {1} characters.")]
         [RegularExpression(@"^[\w\-./]+\.(?i:jpg|jpeg|png|gif|webp)$", ErrorMessage = "Poster image path must be a relative path ending in .jpg, .jpeg, .png, .gif, or .webp.")]
         public string? PosterImagePath { get; set; }
 
