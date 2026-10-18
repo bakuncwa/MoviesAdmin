@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies .env into the MoviesAdmin user secrets store (~/.microsoft/usersecrets/<UserSecretsId>/),
 # so the app and `dotnet ef` read the connection string, seed admin, and API keys from there rather
-# than from appsettings*.json. The connection string is built from the same MSSQL_PORT and
+# than from appsettings*.json (plus the optional Azure Blob poster storage connection string). The connection string is built from the same MSSQL_PORT and
 # MSSQL_SA_PASSWORD that docker-compose.yml uses, so the two can't drift apart.
 #
 # Usage (from the repository root): ./scripts/setup-secrets.sh
@@ -38,5 +38,9 @@ secret "SeedUsers:0:Role" "Admin"
 
 if [[ -n "${TMDB_API_KEY:-}" ]]; then secret "MovieLookup:TmdbApiKey" "$TMDB_API_KEY"; fi
 if [[ -n "${OMDB_API_KEY:-}" ]]; then secret "MovieLookup:OmdbApiKey" "$OMDB_API_KEY"; fi
+if [[ -n "${AZURE_STORAGE_CONNECTION_STRING:-}" ]]; then
+  secret "PosterStorage:ConnectionString" "$AZURE_STORAGE_CONNECTION_STRING"
+  secret "PosterStorage:ContainerName" "${AZURE_POSTER_CONTAINER:-posters}"
+fi
 
 echo "Done. List them with: dotnet user-secrets list --project $project"

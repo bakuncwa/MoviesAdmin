@@ -1,25 +1,33 @@
-using Microsoft.AspNetCore.Authorization;
+// using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.MovieLookup;
+using MoviesAdmin.Services.PosterStorage;
 using MoviesAdmin.Validation;
 using MoviesAdmin.ViewModels.Movies;
 
 namespace MoviesAdmin.Controllers
 {
-    // Admin CRUD for Movies: poster-grid/list Index with a featured hero and async search, Create/Edit as AJAX-loaded modals,
-    // Details as an AJAX-loaded modal, Delete confirmed client-side (SweetAlert2 + a 10-second
-    // "Undo" window in wwwroot/js/movies.js) before this controller ever removes anything.
+    // Admin CRUD for Movies: a records table with async search/filter/sort, Create/Edit/Details as
+    // AJAX-loaded modals, Delete confirmed client-side (SweetAlert2 + a 10-second "Undo" window in
+    // wwwroot/js/movies.js) before this controller ever removes anything.
     //
-    // IAM: gated behind the "Admin" policy set up in Program.cs. The Admin role is seeded by the
-    // AddIamRoles migration and granted to the first account that registers.
-    [Authorize(Policy = "RequireAdmin")]
+    // Each partial lives in Views/Movies/Partials/ under the name of the action that renders it:
+    //   GET  Movies              -> Index.cshtml (+ Partials/_Index)
+    //   GET  Movies/Search       -> Partials/_Index      (async refresh of the records table)
+    //   GET  Movies/Create       -> Partials/_Create     POST Movies/Create
+    //   GET  Movies/Edit/5       -> Partials/_Edit       POST Movies/Edit/5
+    //   GET  Movies/Details/5    -> Partials/_Details
+    //   GET  Movies/Trailer/5    -> Partials/_Trailer
+    //   POST Movies/Delete/5
+    //
+    // IAM: login/logout is switched off for now, so CRUD is open to anyone. To restore it, uncomment
+    // this attribute along with the Identity setup in Program.cs and AccountController.
+    // [Authorize(Policy = "RequireAdmin")]
     public class MoviesController : Controller
     {
-        private const string UploadsRelativeFolder = "images/movies";
-
         private readonly IMovieRepository _movieRepository;
         private readonly IGenreRepository _genreRepository;
         private readonly IDirectorRepository _directorRepository;
@@ -28,7 +36,7 @@ namespace MoviesAdmin.Controllers
         // IRepository<T> registration (see Program.cs) rather than a dedicated repository pair.
         private readonly IRepository<Trailer> _trailerRepository;
         private readonly IEnumerable<IMovieLookupProvider> _lookupProviders;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IPosterStorage _posterStorage;
 
         public MoviesController(
             IMovieRepository movieRepository,
@@ -37,7 +45,7 @@ namespace MoviesAdmin.Controllers
             IStudioRepository studioRepository,
             IRepository<Trailer> trailerRepository,
             IEnumerable<IMovieLookupProvider> lookupProviders,
-            IWebHostEnvironment environment)
+            IPosterStorage posterStorage)
         {
             _movieRepository = movieRepository;
             _genreRepository = genreRepository;
@@ -45,7 +53,7 @@ namespace MoviesAdmin.Controllers
             _studioRepository = studioRepository;
             _trailerRepository = trailerRepository;
             _lookupProviders = lookupProviders;
-            _environment = environment;
+            _posterStorage = posterStorage;
         }
 
         // GET: Movies?q=&genreId=&year=&rating=&sort=
@@ -57,9 +65,6 @@ namespace MoviesAdmin.Controllers
             {
                 query = new MovieCatalogQuery();
             }
-
-            var featured = await _movieRepository.SearchAsync(null, null, null, null, MovieSortOrder.ReleaseDateDesc);
-            ViewData["Featured"] = PickFeatured(featured.Select(MovieListItemViewModel.FromEntity));
 
             var genres = await _genreRepository.GetAllAsync();
             var model = new MovieCatalogViewModel
@@ -76,23 +81,9 @@ namespace MoviesAdmin.Controllers
             return View(model);
         }
 
-        // GET: Movies/Hero
-        // Re-rendered by movies.js after a create/edit/delete so the featured banner never shows a
-        // stale or deleted movie.
-        [HttpGet]
-        public async Task<IActionResult> Hero()
-        {
-            var movies = await _movieRepository.SearchAsync(null, null, null, null, MovieSortOrder.ReleaseDateDesc);
-            return PartialView("_MovieHero", PickFeatured(movies.Select(MovieListItemViewModel.FromEntity)));
-        }
-
-        // The hero banner features the most recently added movie (highest Id).
-        private static MovieListItemViewModel? PickFeatured(IEnumerable<MovieListItemViewModel> rows) =>
-            rows.OrderByDescending(m => m.Id).FirstOrDefault();
-
         // GET: Movies/Search?q=&genreId=&year=&rating=&sort=
-        // Async toolbar (search box, filters, sort): returns the catalog partial (poster grid + list
-        // table) so the client can swap #movie-catalog's content. Validation rules for each
+        // Async toolbar (search box, filters, sort): returns the records table partial so the client
+        // can swap #movie-catalog's content. Validation rules for each
         // parameter live on MovieCatalogQuery.
         [HttpGet]
         public async Task<IActionResult> Search([FromQuery] MovieCatalogQuery query)
@@ -103,7 +94,7 @@ namespace MoviesAdmin.Controllers
             }
 
             var model = new MovieCatalogViewModel { Query = query, Movies = await SearchCatalogAsync(query) };
-            return PartialView("_MovieCatalog", model);
+            return PartialView("Partials/_Index", model);
         }
 
         private async Task<List<MovieListItemViewModel>> SearchCatalogAsync(MovieCatalogQuery query)
@@ -112,13 +103,13 @@ namespace MoviesAdmin.Controllers
             return movies.Select(MovieListItemViewModel.FromEntity).ToList();
         }
 
-        // GET: Movies/CreateModal
+        // GET: Movies/Create
         [HttpGet]
-        public async Task<IActionResult> CreateModal()
+        public async Task<IActionResult> Create()
         {
             var model = new MovieFormViewModel();
             await PopulateFormOptionsAsync(model);
-            return PartialView("_MovieFormModal", model);
+            return PartialView("Partials/_Create", model);
         }
 
         // POST: Movies/Create
@@ -171,9 +162,9 @@ namespace MoviesAdmin.Controllers
             return Json(new { success = true, id = movie.Id });
         }
 
-        // GET: Movies/EditModal/5
+        // GET: Movies/Edit/5
         [HttpGet]
-        public async Task<IActionResult> EditModal(int id)
+        public async Task<IActionResult> Edit(int id)
         {
             var movie = await _movieRepository.GetByIdWithDetailsAsync(id);
             if (movie == null)
@@ -198,7 +189,7 @@ namespace MoviesAdmin.Controllers
             model.SetRuntime(movie.RuntimeMinutes);
             await PopulateFormOptionsAsync(model);
 
-            return PartialView("_MovieFormModal", model);
+            return PartialView("Partials/_Edit", model);
         }
 
         // POST: Movies/Edit/5
@@ -241,7 +232,7 @@ namespace MoviesAdmin.Controllers
                     return await FormValidationFailedAsync(model, movie.PosterImagePath);
                 }
 
-                DeleteUploadedPosterIfAny(movie.PosterImagePath);
+                await _posterStorage.DeleteAsync(movie.PosterImagePath);
                 movie.PosterImagePath = pathOrError;
             }
 
@@ -278,10 +269,10 @@ namespace MoviesAdmin.Controllers
             return Json(new { success = true, id = movie.Id });
         }
 
-        // GET: Movies/DetailsModal/5
+        // GET: Movies/Details/5
         // View modal: poster image on the left, movie details on the right.
         [HttpGet]
-        public async Task<IActionResult> DetailsModal(int id)
+        public async Task<IActionResult> Details(int id)
         {
             var movie = await _movieRepository.GetByIdWithDetailsAsync(id);
             if (movie == null)
@@ -289,14 +280,14 @@ namespace MoviesAdmin.Controllers
                 return NotFound();
             }
 
-            return PartialView("_MovieDetailsModal", MovieDetailsViewModel.FromEntity(movie));
+            return PartialView("Partials/_Details", MovieDetailsViewModel.FromEntity(movie));
         }
 
-        // GET: Movies/TrailerEmbed/5
+        // GET: Movies/Trailer/5
         // Lazily loads the trailer <iframe> only when the admin clicks "Watch Trailer" in the
         // Details modal, rather than embedding a YouTube player for every row up front.
         [HttpGet]
-        public async Task<IActionResult> TrailerEmbed(int id)
+        public async Task<IActionResult> Trailer(int id)
         {
             var movie = await _movieRepository.GetByIdWithDetailsAsync(id);
             var embedUrl = movie?.Trailer?.EmbedUrl;
@@ -305,7 +296,7 @@ namespace MoviesAdmin.Controllers
                 return NotFound();
             }
 
-            return PartialView("_TrailerEmbed", embedUrl);
+            return PartialView("Partials/_Trailer", embedUrl);
         }
 
         // POST: Movies/Delete/5
@@ -325,7 +316,7 @@ namespace MoviesAdmin.Controllers
                 return Json(new { success = true });
             }
 
-            DeleteUploadedPosterIfAny(movie.PosterImagePath);
+            await _posterStorage.DeleteAsync(movie.PosterImagePath);
 
             _movieRepository.Remove(movie);
             await _movieRepository.SaveChangesAsync();
@@ -338,7 +329,7 @@ namespace MoviesAdmin.Controllers
             model.ExistingPosterImagePath = existingPosterImagePath;
             await PopulateFormOptionsAsync(model);
             Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-            return PartialView("_MovieFormModal", model);
+            return PartialView(model.IsEdit ? "Partials/_Edit" : "Partials/_Create", model);
         }
 
         // The dropdowns only offer existing ids, but a tampered post could send any number; catch
@@ -401,7 +392,7 @@ namespace MoviesAdmin.Controllers
         }
 
         // Type and size are already enforced by [PosterFile] on MovieFormViewModel; this re-checks
-        // because it's the last line before a user-supplied file is written under wwwroot.
+        // because it's the last line before a user-supplied file is stored (Azure Blob or wwwroot).
         private async Task<(bool Success, string PathOrError)> TrySavePosterImageAsync(IFormFile file)
         {
             var posterFile = new PosterFileAttribute();
@@ -410,41 +401,7 @@ namespace MoviesAdmin.Controllers
                 return (false, posterFile.ErrorMessage!);
             }
 
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, UploadsRelativeFolder);
-            Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = $"{Guid.NewGuid():N}{extension}";
-            var fullPath = Path.Combine(uploadsFolder, fileName);
-
-            await using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            return (true, $"{UploadsRelativeFolder}/{fileName}");
-        }
-
-        private void DeleteUploadedPosterIfAny(string? posterImagePath)
-        {
-            if (string.IsNullOrWhiteSpace(posterImagePath))
-            {
-                return;
-            }
-
-            var fullPath = Path.Combine(_environment.WebRootPath, posterImagePath.Replace('/', Path.DirectorySeparatorChar));
-            try
-            {
-                if (System.IO.File.Exists(fullPath))
-                {
-                    System.IO.File.Delete(fullPath);
-                }
-            }
-            catch (IOException)
-            {
-                // Best-effort cleanup; an orphaned file under wwwroot/images/movies is harmless.
-            }
+            return (true, await _posterStorage.SaveAsync(file, HttpContext.RequestAborted));
         }
     }
 }

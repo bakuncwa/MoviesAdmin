@@ -337,7 +337,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--ma-text);
 }
 
-/* Hero (featured movie / landing) ------------------------------------------------------------- */
+/* Hero (dashboard landing) ------------------------------------------------------------------ */
 
 .hero {
   position: relative;
@@ -576,7 +576,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--ma-muted);
 }
 
-/* Genre / year / rating / sort dropdowns between the search pill and the view toggle. */
+/* Genre / year / rating / sort dropdowns after the search pill and "Add Movie". */
 .catalog-filters {
   display: flex;
   flex-wrap: wrap;
@@ -605,29 +605,6 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-.view-toggle {
-  display: inline-flex;
-  padding: 0.2rem;
-  border-radius: 999px;
-  background: var(--ma-surface-2);
-}
-
-.view-toggle-btn {
-  width: 2.2rem;
-  height: 2.2rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ma-muted);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.view-toggle-btn[aria-pressed="true"] {
-  background: var(--ma-surface);
-  color: var(--ma-text);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 .section-heading {
   margin-bottom: 0.25rem;
   font-size: 1.35rem;
@@ -654,197 +631,7 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.5;
 }
 
-/* #movie-catalog shows one presentation of the same rows at a time (toggled in movies.js). */
-#movie-catalog.is-grid .catalog-list-view,
-#movie-catalog.is-list .catalog-grid-view {
-  display: none;
-}
-
-/* Poster grid --------------------------------------------------------------------------------- */
-
-.poster-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 16vw, 190px), 1fr));
-  gap: clamp(1rem, 2vw, 1.5rem);
-}
-
-.movie-card {
-  min-width: 0;
-  animation: card-in 0.4s ease-out both;
-}
-
-.movie-card:nth-child(n + 2) { animation-delay: 0.03s; }
-.movie-card:nth-child(n + 4) { animation-delay: 0.06s; }
-.movie-card:nth-child(n + 8) { animation-delay: 0.09s; }
-
-@keyframes card-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
-}
-
-.movie-card-poster {
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 2 / 3;
-  border-radius: 1rem;
-  background: var(--ma-surface-2);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
-}
-
-.movie-card-poster img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.movie-card:hover .movie-card-poster,
-.movie-card:focus-within .movie-card-poster {
-  transform: translateY(-6px);
-  box-shadow: var(--ma-shadow), 0 0 0 2px var(--ma-accent);
-}
-
-.movie-card:hover .movie-card-poster img,
-.movie-card:focus-within .movie-card-poster img {
-  transform: scale(1.07);
-}
-
-.movie-card-badge {
-  position: absolute;
-  top: 0.6rem;
-  left: 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #fbbf24;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-/* Hover overlay: a big play (view) button in the middle and the edit/delete bar at the bottom. */
-.movie-card-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.75) 100%);
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.movie-card:hover .movie-card-overlay,
-.movie-card:focus-within .movie-card-overlay {
-  opacity: 1;
-}
-
-.movie-card-play {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border: 0;
-  border-radius: 50%;
-  background: var(--ma-accent);
-  color: var(--ma-on-accent);
-  font-size: 1.1rem;
-  box-shadow: 0 10px 30px rgba(var(--ma-accent-rgb), 0.5);
-  transform: scale(0.85);
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease;
-}
-
-.movie-card:hover .movie-card-play,
-.movie-card:focus-within .movie-card-play {
-  transform: scale(1);
-}
-
-.movie-card-play:hover {
-  background: var(--ma-accent-hover);
-}
-
-.movie-card-actions {
-  position: absolute;
-  right: 0.6rem;
-  bottom: 0.6rem;
-  display: flex;
-  gap: 0.4rem;
-}
-
-.movie-card-actions .icon-btn {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-/* Touch screens have no hover: keep the action bar visible, drop the center play button
-   (tapping the card's poster area is the view action there). */
-@media (hover: none) {
-  .movie-card-overlay {
-    opacity: 1;
-    background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.7) 100%);
-  }
-
-  .movie-card-play {
-    position: absolute;
-    inset: 0;
-    width: auto;
-    height: auto;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    font-size: 0;
-  }
-}
-
-.movie-card-body {
-  padding: 0.7rem 0.15rem 0;
-}
-
-.movie-card-title {
-  margin: 0;
-  font-size: 0.975rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.movie-card-meta {
-  display: flex;
-  gap: 0.5rem;
-  margin: 0.15rem 0 0;
-  color: var(--ma-muted);
-  font-size: 0.8rem;
-}
-
-.movie-card-meta span + span:not(.rating-badge)::before {
-  content: "•";
-  margin-right: 0.5rem;
-  opacity: 0.5;
-}
-
-.movie-card-meta {
-  align-items: center;
-}
-
-.movie-card-genres {
-  margin: 0.1rem 0 0;
-  color: var(--ma-muted);
-  font-size: 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* List view ------------------------------------------------------------------------------------ */
+/* Records table ------------------------------------------------------------------------------- */
 
 .catalog-list-view {
   border: 1px solid var(--ma-border);
@@ -877,14 +664,14 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0.5rem;
 }
 
-/* Keeps a row's View/Edit/Delete buttons together in one cell on the record's own row, instead of
+/* Keeps a row's Edit/Delete buttons together in one cell on the record's own row, instead of
    wrapping onto a second line when the table gets narrow. width: 1% shrinks the column to fit. */
 .movie-actions-cell {
   width: 1%;
   white-space: nowrap;
 }
 
-/* Applied to a card/row the moment its delete is confirmed, for the 10-second undo window in
+/* Applied to a row the moment its delete is confirmed, for the 10-second undo window in
    movies.js: it visibly "goes away" immediately, but stays in the DOM (and un-deleted
    server-side) until the countdown elapses, so Undo can instantly restore it. */
 .movie-pending-delete {

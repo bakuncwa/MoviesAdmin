@@ -11,7 +11,6 @@
     const movieModal = new bootstrap.Modal(movieModalEl);
     const modalContent = document.getElementById('movie-modal-content');
     const catalog = document.getElementById('movie-catalog');
-    const hero = document.getElementById('movie-hero');
     const searchInput = document.getElementById('movie-search');
     const queryForm = document.getElementById('catalog-query');
 
@@ -171,7 +170,7 @@
 
             if (response.ok && contentType.includes('application/json')) {
                 movieModal.hide();
-                await refreshAll();
+                await refreshCatalog();
                 await swal({ toast: true, position: 'top-end', icon: 'success', title: 'Movie saved', showConfirmButton: false, timer: 2000, timerProgressBar: true });
                 return;
             }
@@ -451,7 +450,7 @@
         }));
     }
 
-    // --- Async search/filter/sort + refreshing the hero/catalog ---------------------------------
+    // --- Async search/filter/sort + refreshing the records table -------------------------------
 
     // Non-empty toolbar values as query parameters (q, genreId, year, rating, sort), matching
     // MovieCatalogQuery on the server.
@@ -487,18 +486,6 @@
         }
     }
 
-    async function refreshHero() {
-        const response = await fetch('/Movies/Hero', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (response.ok) {
-            hero.innerHTML = await response.text();
-        }
-    }
-
-    // After any create/edit/delete: the featured movie and the catalog may both have changed.
-    function refreshAll() {
-        return Promise.all([refreshCatalog(), refreshHero()]);
-    }
-
     let searchDebounce = null;
     searchInput?.addEventListener('input', () => {
         searchInput.setCustomValidity('');
@@ -515,48 +502,25 @@
         refreshCatalog();
     });
 
-    // --- Grid/list toggle (remembered per browser; storage may be unavailable) -----------------
-
-    const viewButtons = document.querySelectorAll('[data-catalog-view]');
-
-    function setCatalogView(view) {
-        catalog.classList.toggle('is-grid', view === 'grid');
-        catalog.classList.toggle('is-list', view === 'list');
-        viewButtons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.catalogView === view)));
-    }
-
-    try {
-        const savedView = localStorage.getItem('movies-catalog-view');
-        if (savedView === 'grid' || savedView === 'list') {
-            setCatalogView(savedView);
-        }
-    } catch { /* keep the default grid view */ }
-
-    viewButtons.forEach(btn => btn.addEventListener('click', () => {
-        const view = btn.dataset.catalogView;
-        setCatalogView(view);
-        try { localStorage.setItem('movies-catalog-view', view); } catch { /* not persisted */ }
-    }));
-
     // --- Create/Edit/View delegated clicks -----------------------------------------------------
 
     document.addEventListener('click', (event) => {
-        // Delegated (like the row/card actions below) so it keeps working if the toolbar is re-rendered.
+        // Delegated (like the row actions below) so it keeps working if the toolbar is re-rendered.
         if (event.target.closest('.movie-create-btn')) {
-            loadModal('/Movies/CreateModal');
+            loadModal('/Movies/Create');
             return;
         }
 
         const editBtn = event.target.closest('.movie-edit-btn');
         if (editBtn) {
             // From inside the View modal this swaps the modal's content in place.
-            loadModal(`/Movies/EditModal/${editBtn.dataset.id}`);
+            loadModal(`/Movies/Edit/${editBtn.dataset.id}`);
             return;
         }
 
         const viewBtn = event.target.closest('.movie-view-btn');
         if (viewBtn) {
-            loadModal(`/Movies/DetailsModal/${viewBtn.dataset.id}`);
+            loadModal(`/Movies/Details/${viewBtn.dataset.id}`);
             return;
         }
 
@@ -569,19 +533,16 @@
     // --- Delete: SweetAlert2 confirm, then a 10-second "Undo" window before anything is removed ---
 
     async function confirmDelete(data) {
-        const { id, title, image, release, runtime, rating, genres } = data;
+        const { id, title, release, runtime, rating, genres } = data;
 
         const result = await swal({
             title: 'Delete this movie?',
             html: `
-                <div class="d-flex gap-3 text-start align-items-start">
-                    <img src="${image}" alt="${title} poster" class="rounded border flex-shrink-0" style="width: 96px; height: 144px; object-fit: cover;" />
-                    <div>
-                        <div class="fw-semibold mb-1">${title}</div>
-                        <div class="small text-body-secondary">${rating} &middot; ${release} &middot; ${runtime}</div>
-                        <div class="small text-body-secondary">${genres}</div>
-                        <p class="mt-2 mb-0 small">You'll have 10 seconds to undo this before it's permanent.</p>
-                    </div>
+                <div class="text-start">
+                    <div class="fw-semibold mb-1">${escapeHtml(title)}</div>
+                    <div class="small text-body-secondary">${escapeHtml(rating)} &middot; ${escapeHtml(release)} &middot; ${escapeHtml(runtime)}</div>
+                    <div class="small text-body-secondary">${escapeHtml(genres)}</div>
+                    <p class="mt-2 mb-0 small">You'll have 10 seconds to undo this before it's permanent.</p>
                 </div>
             `,
             icon: 'warning',
@@ -600,7 +561,7 @@
         beginPendingDelete(id, title);
     }
 
-    // Both the poster card and the list row for this movie (only one is visible at a time).
+    // The table row for this movie.
     function movieElements(id) {
         return document.querySelectorAll(`[data-movie-id="${CSS.escape(String(id))}"]`);
     }
@@ -650,7 +611,7 @@
 
             if (response.ok) {
                 movieElements(id).forEach(el => el.remove());
-                await refreshAll();
+                await refreshCatalog();
             } else {
                 setPendingDelete(id, false);
                 await swal({ icon: 'error', title: 'Could not delete the movie.' });

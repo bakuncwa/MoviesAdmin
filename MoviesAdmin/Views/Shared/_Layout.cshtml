@@ -66,6 +66,7 @@
                         </li>
                     </ul>
                     <ul class="navbar-nav align-items-md-center gap-md-2">
+                        @* Login/logout is switched off for now: CRUD is open access (see Program.cs).
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item d-flex align-items-center">
@@ -79,11 +80,11 @@
                         }
                         else
                         {
-                            @* No Register link: accounts are provisioned from configuration (Data/IdentitySeeder.cs). *@
                             <li class="nav-item">
                                 <a class="nav-link @NavActive("Account")" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
                             </li>
                         }
+                        *@
                         <li class="nav-item">
                             @* Icons adapted from Bootstrap Icons (MIT) so no extra library needs to be vendored. *@
                             <button id="theme-toggle" type="button" class="icon-btn" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">

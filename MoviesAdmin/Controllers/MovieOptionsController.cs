@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Authorization;
+// using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MoviesAdmin.Models;
@@ -14,7 +14,8 @@ namespace MoviesAdmin.Controllers
     //   409 { id, name, error }   that name already exists (ignoring case and extra spaces); the
     //                             picker shows an alert and selects the existing entry instead
     //   400 { error }             the name broke a validation rule
-    [Authorize(Policy = "RequireAdmin")]
+    // Login/logout is switched off for now (see MoviesController); CRUD is open access.
+    // [Authorize(Policy = "RequireAdmin")]
     public class MovieOptionsController : Controller
     {
         private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));

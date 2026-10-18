@@ -1,6 +1,7 @@
 @model MoviesAdmin.ViewModels.Movies.MovieDetailsViewModel
 
-@* Injected into #movie-modal-content by wwwroot/js/movies.js when a "View" button is clicked. *@
+@* GET Movies/Details/5: injected into #movie-modal-content by wwwroot/js/movies.js when a movie's
+   title is clicked in the records table. *@
 
 <div class="details-modal">
     <img class="details-backdrop" src="@Model.DisplayImageUrl" alt="" aria-hidden="true" />
@@ -14,7 +15,7 @@
 
                 @if (Model.HasTrailer)
                 {
-                    <div id="movie-trailer-slot" class="mt-3" data-trailer-url="@Url.Action("TrailerEmbed", "Movies", new { id = Model.Id })">
+                    <div id="movie-trailer-slot" class="mt-3" data-trailer-url="@Url.Action("Trailer", "Movies", new { id = Model.Id })">
                         <button type="button" class="btn btn-primary w-100 movie-trailer-btn">
                             <i class="fa-solid fa-play me-1" aria-hidden="true"></i>Watch Trailer
                         </button>

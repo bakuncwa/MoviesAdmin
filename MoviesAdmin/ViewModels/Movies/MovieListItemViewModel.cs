@@ -2,7 +2,7 @@ using MoviesAdmin.Models;
 
 namespace MoviesAdmin.ViewModels.Movies
 {
-    // One row of the admin Movies table (Views/Movies/_MovieTableRows.cshtml), plus the extra
+    // One row of the admin Movies table (Views/Movies/Partials/_Index.cshtml), plus the extra
     // fields the View/Edit/Delete modals need without a second round trip (see the data-* attrs
     // rendered onto each row's action buttons).
     public class MovieListItemViewModel
@@ -81,7 +81,7 @@ namespace MoviesAdmin.ViewModels.Movies
         {
             if (!string.IsNullOrWhiteSpace(movie.PosterImagePath))
             {
-                return "/" + movie.PosterImagePath.TrimStart('/');
+                return UploadedPosterUrl(movie.PosterImagePath);
             }
 
             if (!string.IsNullOrWhiteSpace(movie.PosterUrl))
@@ -91,5 +91,11 @@ namespace MoviesAdmin.ViewModels.Movies
 
             return PlaceholderImageUrl;
         }
+
+        // PosterImagePath is a blob URL (Azure Blob Storage, used as-is) or a path under wwwroot.
+        public static string UploadedPosterUrl(string posterImagePath) =>
+            Uri.IsWellFormedUriString(posterImagePath, UriKind.Absolute)
+                ? posterImagePath
+                : "/" + posterImagePath.TrimStart('/');
     }
 }

@@ -2,7 +2,7 @@ using MoviesAdmin.Models;
 
 namespace MoviesAdmin.ViewModels.Movies
 {
-    // Backs the View modal (_MovieDetailsModal.cshtml): poster on the left, details on the right.
+    // Backs the View modal (Views/Movies/Partials/_Details.cshtml): poster on the left, details on the right.
     public class MovieDetailsViewModel
     {
         public int Id { get; set; }

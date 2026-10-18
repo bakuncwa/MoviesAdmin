@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Dashboard";
-    var isAdmin = User.IsInRole("Admin");
+    // var isAdmin = User.IsInRole("Admin");
 }
 
 <section class="hero hero-landing">
@@ -10,6 +10,8 @@
             <h1 class="hero-title">Reelbox<span class="brand-accent">Admin</span></h1>
             <p class="hero-synopsis">The projection booth behind Reelbox. Curate the catalog: posters, trailers, directors, studios, and genres, all in one place.</p>
             <div class="hero-actions">
+                <a class="btn btn-primary btn-lg" asp-controller="Movies" asp-action="Index"><i class="fa-solid fa-film me-2" aria-hidden="true"></i>Manage movies</a>
+                @* Login/logout is switched off for now: CRUD is open access (see Program.cs).
                 @if (isAdmin)
                 {
                     <a class="btn btn-primary btn-lg" asp-controller="Movies" asp-action="Index"><i class="fa-solid fa-film me-2" aria-hidden="true"></i>Manage movies</a>
@@ -22,6 +24,7 @@
                 {
                     <span class="text-body-secondary">Your account has read-only access.</span>
                 }
+                *@
             </div>
         </div>
     </div>

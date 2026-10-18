@@ -49,7 +49,7 @@ namespace MoviesAdmin.ViewModels.Movies
     }
 
     // Index page model: the query, the matching rows, and the options its filter dropdowns offer.
-    // _MovieCatalog.cshtml renders the same type (options left empty) for async refreshes.
+    // Partials/_Index.cshtml renders the same type (options left empty) for async refreshes.
     public class MovieCatalogViewModel
     {
         public MovieCatalogQuery Query { get; set; } = new();

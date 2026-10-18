@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authorization;
+// using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
@@ -12,7 +12,8 @@ namespace MoviesAdmin.Controllers
     // Search lists candidates from the chosen source; Details returns one movie already shaped like
     // the form (genre/director/studio names matched to this database's ids), which the browser
     // copies into the inputs. Nothing is saved here: the admin reviews and edits the form, then saves.
-    [Authorize(Policy = "RequireAdmin")]
+    // Login/logout is switched off for now (see MoviesController); CRUD is open access.
+    // [Authorize(Policy = "RequireAdmin")]
     public class MovieLookupController : Controller
     {
         // The sources name a few genres differently from the seeded list (Wikidata genre names

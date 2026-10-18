@@ -1,0 +1,85 @@
+@model MoviesAdmin.ViewModels.Movies.MovieCatalogViewModel
+
+@* The admin records table. Rendered by GET Movies (Index.cshtml, initial page load) and by
+   GET Movies/Search (async toolbar), so the client can swap #movie-catalog's innerHTML with the
+   same markup either way. Every row carries data-movie-id so the delete Undo window can dim it. *@
+
+@if (Model.Movies.Count == 0)
+{
+    <div class="catalog-empty">
+        <i class="fa-solid fa-film" aria-hidden="true"></i>
+        <p class="mb-0">@(Model.Query.HasFilters ? "No movies match these filters." : "No movies yet.")</p>
+    </div>
+}
+else
+{
+    var count = Model.Movies.Count;
+    <p class="catalog-count">@count @(count == 1 ? "record" : "records")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
+
+    <div class="table-responsive catalog-list-view">
+        <table class="table table-hover align-middle catalog-table mb-0">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 64px;">Poster</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Release Date</th>
+                    <th scope="col">Runtime</th>
+                    <th scope="col">Rated</th>
+                    <th scope="col">Genres</th>
+                    <th scope="col">Reviews</th>
+                    <th scope="col" class="text-end movie-actions-cell">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movie in Model.Movies)
+                {
+                    var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
+                    var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
+
+                    <tr data-movie-id="@movie.Id">
+                        <td>
+                            @* Uploaded file, else the API/external PosterUrl, else the placeholder (MoviePosterResolver). *@
+                            <img src="@movie.DisplayImageUrl" alt="@movie.Title poster" class="catalog-table-thumb" loading="lazy" />
+                        </td>
+                        <td>
+                            @* Opens GET Movies/Details/5 in the shared modal. *@
+                            <button type="button" class="btn btn-link p-0 fw-semibold text-start movie-view-btn" data-id="@movie.Id" title="View details">@movie.Title</button>
+                        </td>
+                        <td>@releaseText</td>
+                        <td>@movie.RuntimeText</td>
+                        <td><span class="rating-badge">@movie.ContentRatingLabel</span></td>
+                        <td>@genresText</td>
+                        <td>
+                            @if (movie.AverageRating.HasValue)
+                            {
+                                <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                                <span class="text-body-secondary small ms-1">(@movie.ReviewCount)</span>
+                            }
+                            else
+                            {
+                                <span class="text-body-secondary">No reviews</span>
+                            }
+                        </td>
+                        <td class="text-end movie-actions-cell">
+                            <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
+                                    <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
+                                </button>
+                                @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
+                                <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
+                                        data-id="@movie.Id"
+                                        data-title="@movie.Title"
+                                        data-release="@releaseText"
+                                        data-runtime="@movie.RuntimeText"
+                                        data-rating="@movie.ContentRatingLabel"
+                                        data-genres="@genresText">
+                                    <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

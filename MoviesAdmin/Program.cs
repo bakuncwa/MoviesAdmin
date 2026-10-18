@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Identity;
+// using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MoviesAdmin.Data;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.MovieLookup;
+using MoviesAdmin.Services.PosterStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,29 +35,34 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-    {
-        options.Password.RequiredLength = 6;
-        options.Password.RequireNonAlphanumeric = false;
-        options.SignIn.RequireConfirmedAccount = false;
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+// --- Login/logout (switched off) ----------------------------------------------------------------
+// CRUD is open access for now: Identity sign-in, the cookie paths, and the "RequireAdmin" policy are
+// commented out, along with [Authorize] on the Movies controllers and AccountController itself.
+// ApplicationDbContext still derives from IdentityDbContext, so the schema and migrations are
+// unchanged and this can be switched back on by uncommenting.
+// builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+//     {
+//         options.Password.RequiredLength = 6;
+//         options.Password.RequireNonAlphanumeric = false;
+//         options.SignIn.RequireConfirmedAccount = false;
+//     })
+//     .AddEntityFrameworkStores<ApplicationDbContext>()
+//     .AddDefaultTokenProviders();
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-});
+// builder.Services.ConfigureApplicationCookie(options =>
+// {
+//     options.LoginPath = "/Account/Login";
+//     options.AccessDeniedPath = "/Account/AccessDenied";
+// });
 
-// --- IAM (Identity/Access Management) setup ------------------------------------------------
-// Movie management (MoviesController) is restricted to the "Admin" role, matching the README's
-// "Admin RBAC viewpoint" description. The role is seeded via HasData in ApplicationDbContext
-// (AddIamRoles migration); accounts holding it come from the "SeedUsers" config (IdentitySeeder).
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
-});
+// // --- IAM (Identity/Access Management) setup ------------------------------------------------
+// // Movie management (MoviesController) is restricted to the "Admin" role, matching the README's
+// // "Admin RBAC viewpoint" description. The role is seeded via HasData in ApplicationDbContext
+// // (AddIamRoles migration); accounts holding it come from the "SeedUsers" config (IdentitySeeder).
+// builder.Services.AddAuthorization(options =>
+// {
+//     options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
+// });
 
 // Generic repository registration: any IRepository<T> resolves to Repository<T>
 // for entities that don't need queries beyond plain CRUD.
@@ -98,10 +104,38 @@ builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<
 builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<TmdbLookupProvider>());
 builder.Services.AddTransient<IMovieLookupProvider>(sp => sp.GetRequiredService<OmdbLookupProvider>());
 
+// Uploaded posters: an Azure Blob container (public read access for blobs) when
+// PosterStorage:ConnectionString is set, otherwise wwwroot/images/movies. LocalPosterStorage is
+// always registered so the blob store can still clean up posters uploaded locally before.
+builder.Services.Configure<PosterStorageOptions>(builder.Configuration.GetSection(PosterStorageOptions.SectionName));
+builder.Services.AddSingleton<LocalPosterStorage>();
+if (builder.Configuration.GetSection(PosterStorageOptions.SectionName).Get<PosterStorageOptions>()?.UseAzureBlob == true)
+{
+    builder.Services.AddSingleton<IPosterStorage, AzureBlobPosterStorage>();
+}
+else
+{
+    builder.Services.AddSingleton<IPosterStorage>(sp => sp.GetRequiredService<LocalPosterStorage>());
+}
+
 var app = builder.Build();
 
-// Registration is disabled: create the configured "SeedUsers" accounts and bind them to their roles.
-await IdentitySeeder.SeedAsync(app.Services);
+// Resolve the poster store once up front, so a malformed PosterStorage:ConnectionString stops the
+// app at startup with a clear message rather than failing the first Movies request.
+try
+{
+    app.Services.GetRequiredService<IPosterStorage>();
+}
+catch (FormatException ex)
+{
+    throw new InvalidOperationException(
+        "PosterStorage:ConnectionString isn't a valid Azure Storage connection string. Copy it from the " +
+        "storage account's Access keys page into AZURE_STORAGE_CONNECTION_STRING in .env, then re-run " +
+        "./scripts/setup-secrets.sh.", ex);
+}
+
+// Login/logout is switched off, so the configured "SeedUsers" accounts aren't seeded.
+// await IdentitySeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -114,8 +148,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 app.MapStaticAssets();
 

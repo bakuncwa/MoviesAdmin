@@ -6,11 +6,7 @@
     var query = Model.Query;
 }
 
-<div id="movie-hero">
-    @await Html.PartialAsync("_MovieHero", ViewData["Featured"] as MoviesAdmin.ViewModels.Movies.MovieListItemViewModel)
-</div>
-
-@* Sticky toolbar: search, filters, sort, grid/list toggle, and "Add Movie". The search/filter/sort
+@* Sticky toolbar: search with "Add Movie" beside it, then filters and sort. The search/filter/sort
    controls form one GET form (#catalog-query) whose fields match MovieCatalogQuery, so it also
    works without JavaScript; movies.js submits it asynchronously to /Movies/Search instead. *@
 <form id="catalog-query" class="catalog-toolbar" method="get" asp-action="Index" role="search">
@@ -19,6 +15,10 @@
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <input type="search" id="movie-search" name="q" value="@query.Q" placeholder="Search movies by title..." autocomplete="off" maxlength="200" />
     </div>
+    @* Opens GET Movies/Create in the shared modal. *@
+    <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
+        <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie
+    </button>
     <div class="catalog-filters">
         <label for="filter-genre" class="visually-hidden">Genre</label>
         <select id="filter-genre" name="genreId" class="form-select form-select-sm toolbar-select">
@@ -53,23 +53,12 @@
         </select>
         <noscript><button type="submit" class="btn btn-sm btn-secondary">Apply</button></noscript>
     </div>
-    <div class="view-toggle" role="group" aria-label="Catalog layout">
-        <button type="button" class="view-toggle-btn" data-catalog-view="grid" aria-pressed="true" title="Poster grid">
-            <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span class="visually-hidden">Poster grid</span>
-        </button>
-        <button type="button" class="view-toggle-btn" data-catalog-view="list" aria-pressed="false" title="List">
-            <i class="fa-solid fa-list" aria-hidden="true"></i><span class="visually-hidden">List</span>
-        </button>
-    </div>
-    <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
-        <i class="fa-solid fa-plus me-1" aria-hidden="true"></i><span class="d-none d-sm-inline">Add Movie</span>
-    </button>
 </form>
 
 <section aria-labelledby="library-heading">
-    <h2 id="library-heading" class="section-heading">Library</h2>
-    <div id="movie-catalog" class="is-grid">
-        @await Html.PartialAsync("_MovieCatalog", Model)
+    <h2 id="library-heading" class="section-heading">Movies</h2>
+    <div id="movie-catalog">
+        <partial name="Partials/_Index" model="Model" />
     </div>
 </section>
 
@@ -83,7 +72,7 @@
 </div>
 
 @* Antiforgery token source for the Delete fetch() call, which has no <form> of its own (Create/Edit
-   forms carry their own token inside _MovieFormModal.cshtml). *@
+   forms carry their own token inside Partials/_Create.cshtml and Partials/_Edit.cshtml). *@
 <form id="antiforgery-form" class="d-none">@Html.AntiForgeryToken()</form>
 
 @section Styles {

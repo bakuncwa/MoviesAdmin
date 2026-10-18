@@ -5,7 +5,7 @@ using MoviesAdmin.Validation;
 
 namespace MoviesAdmin.ViewModels.Movies
 {
-    // Backs the Create/Edit modal form (_MovieFormModal.cshtml). Id is null for Create.
+    // Backs the Create/Edit modal form (Views/Movies/Partials/_Create.cshtml / _Edit.cshtml, fields in _Form.cshtml). Id is null for Create.
     // Validation attributes mirror the entities they map to (Models/Movie.cs, Models/Trailer.cs)
     // so the form rejects bad input with the same rules the entity itself enforces, before
     // anything reaches the repository/DB.
@@ -120,7 +120,7 @@ namespace MoviesAdmin.ViewModels.Movies
         // placeholder (same priority as MoviePosterResolver uses for the catalog).
         [ValidateNever]
         public string ExistingPosterImageUrl => !string.IsNullOrWhiteSpace(ExistingPosterImagePath)
-            ? "/" + ExistingPosterImagePath.TrimStart('/')
+            ? MoviePosterResolver.UploadedPosterUrl(ExistingPosterImagePath)
             : !string.IsNullOrWhiteSpace(PosterUrl) ? PosterUrl : MoviePosterResolver.PlaceholderImageUrl;
     }
 

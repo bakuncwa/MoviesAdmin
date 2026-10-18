@@ -1,9 +1,9 @@
-# Local SQL Server for MoviesAdmin. MSSQL_SA_PASSWORD and MSSQL_PORT come from .env (git-ignored; copy
+# Local SQL Server and Azurite (Azure Blob Storage emulator, for poster uploads) for MoviesAdmin. MSSQL_SA_PASSWORD and MSSQL_PORT come from .env (git-ignored; copy
 # .env.example), which scripts/setup-secrets.sh also uses to build the app's connection string in user
 # secrets, so the port compose opens and the port the app connects to are always the same value.
 #   docker compose up -d        start (waits nothing; check `docker compose ps` for "healthy")
 #   docker compose down         stop + remove the container (data survives in the named volume)
-#   docker compose down -v      ...and also delete the database volume
+#   docker compose down -v      ...and also delete the database and poster volumes
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -30,5 +30,22 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # Poster uploads (Services/PosterStorage/AzureBlobPosterStorage.cs). The app reaches it through
+  # AZURE_STORAGE_CONNECTION_STRING="UseDevelopmentStorage=true" in .env, which the Azure SDK maps to
+  # http://127.0.0.1:10000/devstoreaccount1, so the blob port is fixed at 10000. The app creates the
+  # "posters" container with public read access for blobs, so <img> tags load blobs directly.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: azurite_inet2005_701
+    # Blob service only; --skipApiVersionCheck lets a newer Azure.Storage.Blobs SDK talk to it.
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+    # Uploaded posters survive `docker compose down`, like the database.
+    volumes:
+      - azurite-data:/data
+    restart: unless-stopped
+
 volumes:
   mssql-data:
+  azurite-data:

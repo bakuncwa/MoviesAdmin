@@ -1,0 +1,176 @@
+@model MoviesAdmin.ViewModels.Movies.MovieFormViewModel
+
+@* Shared fields of the movie form, rendered inside the <form> of Partials/_Create.cshtml (GET/POST
+   Movies/Create) and Partials/_Edit.cshtml (GET/POST Movies/Edit/5). The form is submitted via
+   fetch()+FormData from movies.js, not a normal browser post, so validation failures (422) come
+   back as _Create/_Edit re-rendered with error messages. *@
+
+@{
+    var isEdit = Model.IsEdit;
+    // Set on a 422 re-render; movies.js also reveals the banner when client-side validation fails.
+    var hasErrors = !ViewData.ModelState.IsValid;
+    var anyLookupSource = Model.LookupSources.Any(s => s.IsAvailable);
+}
+
+@* No min/max attributes on the number inputs: jQuery Validate would turn them into rules with
+   its own generic messages, ahead of the [Range] messages on the view model. *@
+<div class="modal-body">
+    <div id="movie-form-warning" class="form-warning" role="alert" hidden="@(!hasErrors)">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <div>
+            <strong>Some fields need attention.</strong> Fix the highlighted fields below, then save again.
+            <div asp-validation-summary="ModelOnly"></div>
+        </div>
+    </div>
+
+    @* Pre-fills the fields below from an external movie database (MovieLookupController). The
+       inputs here have no name attribute, so they're never posted with the movie itself. *@
+    <details class="lookup-panel" open="@(!isEdit)">
+        <summary><i class="fa-solid fa-wand-magic-sparkles me-2" aria-hidden="true"></i>Fill from an online source</summary>
+        <div class="lookup-body">
+            <div class="lookup-controls">
+                <label for="lookup-source" class="visually-hidden">Source</label>
+                <select id="lookup-source" class="form-select form-select-sm">
+                    @if (!anyLookupSource)
+                    {
+                        @* Otherwise every option is disabled and the closed select shows blank. *@
+                        <option value="" selected>Source: none configured</option>
+                    }
+                    @foreach (var source in Model.LookupSources)
+                    {
+                        <option value="@source.Key" disabled="@(!source.IsAvailable)">@source.Name@(source.IsAvailable ? "" : " (no API key)")</option>
+                    }
+                </select>
+                <label for="lookup-query" class="visually-hidden">Title to look up</label>
+                <input id="lookup-query" type="search" class="form-control form-control-sm" placeholder="Title" value="@Model.Title" maxlength="200" autocomplete="off" />
+                <label for="lookup-year" class="visually-hidden">Year (optional)</label>
+                <input id="lookup-year" type="number" class="form-control form-control-sm lookup-year" placeholder="Year" min="1888" max="2100" />
+                <button type="button" id="lookup-search-btn" class="btn btn-sm btn-secondary" disabled="@(!anyLookupSource)">
+                    <i class="fa-solid fa-magnifying-glass me-1" aria-hidden="true"></i>Search
+                </button>
+            </div>
+            <div class="form-check form-check-sm mt-2">
+                <input class="form-check-input" type="checkbox" id="lookup-only-empty" checked="@isEdit" />
+                <label class="form-check-label small" for="lookup-only-empty">Only fill fields that are still empty</label>
+            </div>
+            <div id="lookup-status" class="lookup-status small" aria-live="polite"></div>
+            <ul id="lookup-results" class="lookup-results" hidden></ul>
+        </div>
+    </details>
+
+    <div class="row g-4">
+        <!-- Left: image frame -->
+        <div class="col-md-4 text-center">
+            <img id="movie-form-preview" src="@Model.ExistingPosterImageUrl" alt="Poster preview"
+                 class="img-fluid rounded border mb-2" style="max-height: 260px; width: 100%; object-fit: cover;" />
+
+            <div class="mb-2 text-start">
+                <label asp-for="PosterImageFile" class="form-label small"></label>
+                <input asp-for="PosterImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control form-control-sm" />
+                <span asp-validation-for="PosterImageFile" class="text-danger small"></span>
+            </div>
+            <div class="mb-2 text-start">
+                <label asp-for="PosterUrl" class="form-label small"></label>
+                <input asp-for="PosterUrl" class="form-control form-control-sm" placeholder="https://..." />
+                <span asp-validation-for="PosterUrl" class="text-danger small"></span>
+            </div>
+            <div class="text-start">
+                <label asp-for="TrailerUrl" class="form-label small"></label>
+                <input asp-for="TrailerUrl" class="form-control form-control-sm" placeholder="https://www.youtube.com/watch?v=..." />
+                <span asp-validation-for="TrailerUrl" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <!-- Right: movie details -->
+        <div class="col-md-8">
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Synopsis" class="form-label"></label>
+                <textarea asp-for="Synopsis" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Synopsis" class="text-danger small"></span>
+            </div>
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="ReleaseDate" class="form-label"></label>
+                    <input asp-for="ReleaseDate" type="date" class="form-control" />
+                    <span asp-validation-for="ReleaseDate" class="text-danger small"></span>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="ContentRating" class="form-label"></label>
+                    <select asp-for="ContentRating" class="form-select">
+                        <option value="">— Choose —</option>
+                        @foreach (var rating in Enum.GetValues<MoviesAdmin.Models.ContentRating>())
+                        {
+                            <option value="@rating" selected="@(Model.ContentRating == rating)">@rating.ToLabel()</option>
+                        }
+                    </select>
+                    <span asp-validation-for="ContentRating" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="RuntimeHours">Runtime</label>
+                <div class="input-group">
+                    <input asp-for="RuntimeHours" type="number" class="form-control" placeholder="0" aria-label="Runtime hours" />
+                    <span class="input-group-text">h</span>
+                    <input asp-for="RuntimeMinutesPart" type="number" class="form-control" placeholder="0" aria-label="Runtime minutes" />
+                    <span class="input-group-text">m</span>
+                </div>
+                <span asp-validation-for="RuntimeHours" class="text-danger small d-block"></span>
+                <span asp-validation-for="RuntimeMinutesPart" class="text-danger small d-block"></span>
+            </div>
+            <div class="row">
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="DirectorId" class="form-label"></label>
+                    @* Enhanced into a searchable picker with an "Add ..." option by movies.js (Tom Select). *@
+                    <select asp-for="DirectorId" class="form-select" data-credit-picker="director"
+                            data-add-url="@Url.Action("AddDirector", "MovieOptions")" data-placeholder="Search or add a director...">
+                        <option value="">— None —</option>
+                        @foreach (var director in Model.AvailableDirectors)
+                        {
+                            <option value="@director.Id" selected="@(Model.DirectorId == director.Id)">@director.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="DirectorId" class="text-danger small"></span>
+                </div>
+                <div class="col-sm-6 mb-3">
+                    <label asp-for="StudioId" class="form-label"></label>
+                    <select asp-for="StudioId" class="form-select" data-credit-picker="studio"
+                            data-add-url="@Url.Action("AddStudio", "MovieOptions")" data-placeholder="Search or add a studio...">
+                        <option value="">— None —</option>
+                        @foreach (var studio in Model.AvailableStudios)
+                        {
+                            <option value="@studio.Id" selected="@(Model.StudioId == studio.Id)">@studio.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="StudioId" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mb-1">
+                <label class="form-label d-block">Genres</label>
+                @if (Model.AvailableGenres.Count == 0)
+                {
+                    <p class="text-body-secondary small mb-0">No genres yet.</p>
+                }
+                else
+                {
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (var genre in Model.AvailableGenres)
+                        {
+                            var checkboxId = $"genre-{genre.Id}";
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="SelectedGenreIds" value="@genre.Id" id="@checkboxId"
+                                       checked="@(Model.SelectedGenreIds.Contains(genre.Id))" />
+                                <label class="form-check-label" for="@checkboxId">@genre.Name</label>
+                            </div>
+                        }
+                    </div>
+                }
+                <span asp-validation-for="SelectedGenreIds" class="text-danger small"></span>
+            </div>
+        </div>
+    </div>
+</div>

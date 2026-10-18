@@ -9,13 +9,11 @@
 
 ## Screenshots
 
-| Movies: featured hero, filters, and poster grid | Movies: list view |
+| Movies: records table | Movie details |
 | --- | --- |
-| ![Movies poster grid](docs/screenshots/movies-grid.png) | ![Movies list view](docs/screenshots/movies-list.png) |
-| **Movie details** | **Add/Edit movie form** |
-| ![Movie details modal](docs/screenshots/movie-details.png) | ![Edit movie form](docs/screenshots/movie-edit.png) |
-| **Delete confirmation (SweetAlert2)** | **Admin sign-in** |
-| ![Delete confirmation](docs/screenshots/movie-delete.png) | ![Login page](docs/screenshots/login.png) |
+| ![Movies records table](docs/screenshots/movies-list.png) | ![Movie details modal](docs/screenshots/movie-details.png) |
+| **Add/Edit movie form** | **Delete confirmation (SweetAlert2)** |
+| ![Edit movie form](docs/screenshots/movie-edit.png) | ![Delete confirmation](docs/screenshots/movie-delete.png) |
 | **Validation warnings** | |
 | ![Add movie form with validation warnings](docs/screenshots/movie-validation.png) | |
 
@@ -25,7 +23,7 @@
 | --- | --- |
 | CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
 | Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, genres (many-to-many via `MovieGenre`, 8 seeded genres), `ContentRating` (G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
-| Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) as a poster grid or table, with "Add Movie" in the toolbar and View/Edit/Delete on each movie |
+| Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) in an admin records table, with "Add Movie" beside the search bar, Edit/Delete in each row's Actions column, and the title opening the details view |
 | Good design principles and the site's brand | Reelbox Admin brand (green-to-brown film logo mark, forest-green "Admin" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
 
 ## Technology Stack
@@ -36,8 +34,9 @@
 | Programming language | C# | Application programming language | In use |
 | Data access | Entity Framework Core | Database access and persistence | In use |
 | Database | SQL Server 2022 (Developer Edition) in Docker | Relational database storage | In use — 6 migrations applied |
-| Containerization | Docker Desktop + Docker Compose (`docker-compose.yml`) | Runs the local SQL Server with a persistent volume and health check | In use |
-| Authentication | ASP.NET Core Identity | Config-provisioned accounts, login/logout, role-based access | In use |
+| Poster storage | Azure Blob Storage via Azurite in Docker (`Azure.Storage.Blobs`) | Uploaded poster images, served from a container with public read access for blobs only; works the same against a real Azure storage account, and falls back to `wwwroot/images/movies` when not configured | In use |
+| Containerization | Docker Desktop + Docker Compose (`docker-compose.yml`) | Runs the local SQL Server (persistent volume, health check) and Azurite for poster blobs (persistent volume, port 10000) | In use |
+| Authentication | ASP.NET Core Identity | Config-provisioned accounts, login/logout, role-based access | Switched off (code commented out; schema kept) |
 | View technology | Razor Views (`.cshtml`) | Server-rendered user interface | In use |
 | Front end | HTML5 / CSS3 / JavaScript | Front-end structure, styling, and behavior | In use |
 | UI library | Bootstrap 5.3 (vendored under `wwwroot/lib/bootstrap`) | Responsive UI components, layout, and native `data-bs-theme` light/dark color modes | In use |
@@ -61,7 +60,7 @@ Run commands from the repository root (`~/Desktop/MoviesAdmin`), one line at a t
 | 2. Restore the local `dotnet-ef` tool (pinned in `dotnet-tools.json`) | `dotnet tool restore` |
 | 3. Create your local secrets file, then edit the passwords (and optionally add API keys) | `cp .env.example .env` |
 | 4. Copy `.env` into the app's user secrets (re-run whenever `.env` changes) | `./scripts/setup-secrets.sh` |
-| 5. Start SQL Server in Docker (reads the same `.env`) | `docker compose up -d` |
+| 5. Start SQL Server and Azurite in Docker (reads the same `.env`) | `docker compose up -d` |
 | 6. Wait until the status shows `(healthy)` (~30–60s on Apple Silicon) | `docker compose ps` |
 | 7. Create the database and apply all migrations | `dotnet ef database update --project MoviesAdmin` |
 | 8. Run the app at http://localhost:5126 | `dotnet run --project MoviesAdmin` |
@@ -130,9 +129,11 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
   5. `SeedDirectorsStudios` — seeds five director/studio pairs (Joe Wright / Working Title Films, Greta Gerwig / Columbia Pictures, Christopher Nolan / Syncopy, Denis Villeneuve / Legendary Pictures, Bong Joon-ho / Barunson E&A) and a sample movie, *Pride & Prejudice* (2005), with its TMDB poster as `PosterUrl`.
   6. `SeedGenresContentRating` — adds `Movie.ContentRating` (stored as the enum name, e.g. `PG13`), seeds eight genres (Action, Animation, Comedy, Drama, Horror, Romance, Sci-Fi, Thriller), and rates *Pride & Prejudice* PG with Drama/Romance.
 - **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`/`IDirectorRepository`/`IStudioRepository`, all registered in `Program.cs`. `Trailer` has no queries beyond plain CRUD, so it resolves through the generic `IRepository<Trailer>` registration instead of a dedicated pair.
-- **Authentication:** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Reviews links with auth-aware login/logout controls
+- **Authentication (switched off):** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Reviews links with auth-aware login/logout controls
 
 ## IAM (Identity/Access Management)
+
+> **Currently switched off.** Login/logout is commented out so CRUD is open access: the Identity registration, `RequireAdmin` policy, `IdentitySeeder` call, and `UseAuthentication`/`UseAuthorization` in `Program.cs`; `AccountController`; the `[Authorize]` attributes on `MoviesController`, `MovieOptionsController`, and `MovieLookupController`; the `Views/Account/*` views; and the login/logout links in `_Layout.cshtml` and the dashboard. `ApplicationDbContext` still derives from `IdentityDbContext`, so the schema and migrations are unchanged. Uncomment those pieces to switch it back on; the rest of this section describes that setup.
 
 - **No self-registration.** `AccountController` only signs in/out. Every account is declared in the `SeedUsers` configuration section (email, password, display name, and **role**), and `Data/IdentitySeeder.cs` creates any missing account on startup and assigns its role. Existing passwords are never overwritten from config.
 - **Roles** `Admin` and `Viewer` are seeded via `HasData` in `ApplicationDbContext` (migration `AddIamRoles`, with fixed `ConcurrencyStamp`s so the seed is deterministic).
@@ -141,36 +142,44 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 
 ## Movies Admin CRUD
 
-`MoviesController` + `Views/Movies/*` + `wwwroot/js/movies.js` implement a full CRUD screen at `/Movies`, styled after streaming sites such as Movy/Cineby:
+`MoviesController` + `Views/Movies/*` + `wwwroot/js/movies.js` implement a full CRUD screen at `/Movies`. Each partial lives in `Views/Movies/Partials/` and is named after the action (route) that renders it:
 
-- **Featured hero (`_MovieHero.cshtml`):** the most recently added movie over a blurred copy of its poster, with View details/Edit actions. Re-fetched from `GET /Movies/Hero` after every create/edit/delete so it never shows a stale or deleted movie.
-- **Catalog (`_MovieCatalog.cshtml`):** every movie, sorted by release date (newest first). One partial renders both a responsive poster grid (hover lift and zoom, play button to view, edit/delete bar; year, runtime, rating badge, and genres under each poster) and a list table (poster thumbnail, title, release date, runtime, content rating, genres, review average, and View/Edit/Delete kept together in one cell per row). A grid/list toggle switches between them and is remembered per browser. Populated by `IMovieRepository.SearchAsync`.
-- **Toolbar:** search, genre/year/rating filters, sort order, grid/list toggle, and "Add Movie" share one sticky glass toolbar (filters wrap to their own row on phones).
-- **Async search, filter, and sort:** the toolbar is a GET form whose fields bind to `MovieCatalogQuery` (`q`, `genreId`, `year`, `rating`, `sort`). Typing in the search box (debounced 300ms) or changing a dropdown calls `GET /Movies/Search?...`, which validates every parameter through data annotations on `MovieCatalogQuery` (the search text against a timeout-guarded regex) and returns the catalog partial to swap into `#movie-catalog`. The filters and sort are applied in SQL by `IMovieRepository.SearchAsync` before `ToListAsync()`. The URL is kept in step (`/Movies?genreId=4&sort=TitleAsc`), so reloads and shared links keep the view. Sort options: release date (newest/oldest), title (A–Z/Z–A), review score, and runtime (longest/shortest).
+| Route | Renders | Purpose |
+| --- | --- | --- |
+| `GET /Movies` | `Index.cshtml` + `Partials/_Index.cshtml` | Toolbar and records table |
+| `GET /Movies/Search?...` | `Partials/_Index.cshtml` | Async refresh of the records table |
+| `GET` / `POST /Movies/Create` | `Partials/_Create.cshtml` (fields in `Partials/_Form.cshtml`) | Add form in the shared modal / save |
+| `GET` / `POST /Movies/Edit/{id}` | `Partials/_Edit.cshtml` (fields in `Partials/_Form.cshtml`) | Edit form in the shared modal / save |
+| `GET /Movies/Details/{id}` | `Partials/_Details.cshtml` | View modal |
+| `GET /Movies/Trailer/{id}` | `Partials/_Trailer.cshtml` | Lazy-loaded trailer embed |
+| `POST /Movies/Delete/{id}` | JSON | Delete after the Undo window |
+
+- **Records table (`Partials/_Index.cshtml`):** every movie, sorted by release date (newest first): poster thumbnail (uploaded file, else the poster URL from the online lookup, else a placeholder), title (opens the details view), release date, runtime, content rating, genres, review average, and an Actions column with Edit and Delete. Populated by `IMovieRepository.SearchAsync`.
+- **Toolbar:** search with "Add Movie" right beside it, then genre/year/rating filters and sort order, in one sticky toolbar (filters wrap to their own row on phones).
+- **Async search, filter, and sort:** the toolbar is a GET form whose fields bind to `MovieCatalogQuery` (`q`, `genreId`, `year`, `rating`, `sort`). Typing in the search box (debounced 300ms) or changing a dropdown calls `GET /Movies/Search?...`, which validates every parameter through data annotations on `MovieCatalogQuery` (the search text against a timeout-guarded regex) and returns `Partials/_Index.cshtml` to swap into `#movie-catalog`. The filters and sort are applied in SQL by `IMovieRepository.SearchAsync` before `ToListAsync()`. The URL is kept in step (`/Movies?genreId=4&sort=TitleAsc`), so reloads and shared links keep the view. Sort options: release date (newest/oldest), title (A–Z/Z–A), review score, and runtime (longest/shortest).
 - **Validation:** see [Validation](#validation).
 - **Online lookup:** see [Movie lookup](#movie-lookup).
-- **Create/Edit:** "Add Movie" and each row's "Edit" button load `_MovieFormModal.cshtml` into a shared Bootstrap modal via `GET /Movies/CreateModal` / `GET /Movies/EditModal/{id}`, submitted back via `fetch()` + `FormData` (so the poster file upload works) to `POST /Movies/Create` / `POST /Movies/Edit/{id}`. A 422 response re-renders the same partial with validation messages without closing the modal. The form's image column doubles as an image-left/details-right layout, and includes a required content-rating dropdown (G/PG/PG-13/R/NC-17), runtime as separate hours and minutes inputs, Director/Studio dropdowns, a Genre checkbox list, and a Trailer YouTube URL field.
-- **View (Details):** each row's "View" button loads `_MovieDetailsModal.cshtml` via `GET /Movies/DetailsModal/{id}` — poster on the left, details (release date, runtime, director, studio, genres, rating, synopsis) on the right. If the movie has a trailer, a "Watch Trailer" button lazily fetches the `<iframe>` embed from `GET /Movies/TrailerEmbed/{id}` only when clicked, rather than embedding a YouTube player for every row up front.
-- **Delete:** a SweetAlert2 confirmation dialog (styled with the same poster-left/details-right layout, built from `data-*` attributes on the row's Delete button — no extra round trip) precedes deletion. On confirm, the row is greyed out client-side and a SweetAlert2 toast with a 10-second countdown and an "Undo" button appears; `POST /Movies/Delete/{id}` is only called if the countdown fully elapses without Undo being clicked, so nothing is actually removed from the database during the grace window.
+- **Create/Edit:** "Add Movie" and each row's "Edit" button load `Partials/_Create.cshtml` / `Partials/_Edit.cshtml` into a shared Bootstrap modal via `GET /Movies/Create` / `GET /Movies/Edit/{id}`, submitted back via `fetch()` + `FormData` (so the poster file upload works) to `POST /Movies/Create` / `POST /Movies/Edit/{id}`. A 422 response re-renders `_Create`/`_Edit` with validation messages without closing the modal. The form's image column doubles as an image-left/details-right layout, and includes a required content-rating dropdown (G/PG/PG-13/R/NC-17), runtime as separate hours and minutes inputs, Director/Studio dropdowns, a Genre checkbox list, and a Trailer YouTube URL field.
+- **View (Details):** clicking a row's title loads `Partials/_Details.cshtml` via `GET /Movies/Details/{id}` — poster on the left, details (release date, runtime, director, studio, genres, rating, synopsis) on the right. If the movie has a trailer, a "Watch Trailer" button lazily fetches the `<iframe>` embed from `GET /Movies/Trailer/{id}` only when clicked, rather than embedding a YouTube player for every row up front.
+- **Delete:** a SweetAlert2 confirmation dialog (title, rating, release date, runtime, and genres, built from `data-*` attributes on the row's Delete button — no extra round trip) precedes deletion. On confirm, the row is greyed out client-side and a SweetAlert2 toast with a 10-second countdown and an "Undo" button appears; `POST /Movies/Delete/{id}` is only called if the countdown fully elapses without Undo being clicked, so nothing is actually removed from the database during the grace window.
 - **Modal styling:** `.modal-backdrop.show` gets a `backdrop-filter: blur(6px)` in `site.css` so Create/Edit/View dialogs blur the page behind them; the View modal adds a blurred-poster wash. SweetAlert2 dialogs follow the site theme (`theme: 'dark'`/`'light'`).
-- **Poster images:** uploaded files are validated by `[PosterFile]` (`.jpg/.jpeg/.png/.gif/.webp`, ≤5MB, checked in the browser and on the server) and saved under `wwwroot/images/movies/` with a generated filename; `Movie.PosterImagePath` takes display priority over `Movie.PosterUrl`, which falls back to a generated placeholder SVG when neither is set.
+- **Poster images:** uploaded files are validated by `[PosterFile]` (`.jpg/.jpeg/.png/.gif/.webp`, ≤5MB, checked in the browser and on the server) and stored with a generated filename through `IPosterStorage` (`Services/PosterStorage/`). When `PosterStorage:ConnectionString` is set (by default `UseDevelopmentStorage=true`, i.e. the Azurite container from `docker-compose.yml` at `http://127.0.0.1:10000/devstoreaccount1`), `AzureBlobPosterStorage` uploads to the blob container (default `posters`, access level "Blob": public read access for blobs only, so anyone can load a poster by URL but nobody can list the container; the app creates it that way if it doesn't exist) with the right `Content-Type`, and the blob's URL is saved in `Movie.PosterImagePath`. The table on `/Movies` shows each poster as a thumbnail, and the Details view (`GET /Movies/Details/{id}`) shows the same image full-size. Otherwise `LocalPosterStorage` saves under `wwwroot/images/movies/` as before. Replacing or deleting a movie's poster removes the old blob or file; posters already saved locally keep working after switching to Azure. `Movie.PosterImagePath` takes display priority over `Movie.PosterUrl`, which falls back to a generated placeholder SVG when neither is set.
 
 ## Current Core, Enhancing, and Enabling Features
 
 *(Reference wireframe: Rotten Tomatoes; visual style: Movy / Cineby)*
 
 ### Core
-- [x] Movie browse page: featured hero, poster grid, and list view at `/Movies`, sorted by release date (newest first)
+- [x] Movie records table at `/Movies`, sorted by release date (newest first), with Edit/Delete actions per row
 - [x] Movie data: title, synopsis, genres, content rating (G/PG/PG-13/R/NC-17), runtime in hours/minutes, release date
 - [x] Movie details: modal with poster, meta, genres, director, studio, synopsis, and lazy-loaded YouTube trailer
 - [x] Movie create/edit: modal form posted via `fetch()` through `MoviesController` into the Docker database, with server-side validation (422 re-render)
 - [x] Movie delete: SweetAlert2 confirmation plus a 10-second Undo window before anything is removed
-- [x] Poster images: upload (validated type/size) or external URL, with a placeholder fallback
+- [x] Poster images: upload (validated type/size) to Azure Blob Storage or local disk, or external URL from the online lookup, with a placeholder fallback
 - [ ] User-submitted reviews and ratings (schema in place, UI planned)
 
 ### Enhancing
 - [x] Async title search (debounced, regex-validated)
-- [x] Grid/list catalog toggle, remembered per browser
 - [x] Searchable Director and Studio pickers: type to filter, or add a new one on the spot; adding a name that already exists (ignoring case and extra spaces) shows an alert and selects the existing entry
 - [x] Eight seeded genres, selectable as checkboxes on the form
 - [x] Filter by genre, release year, and content rating
@@ -183,10 +192,10 @@ Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a con
 - [x] Secrets out of source control: connection string, seed admin, and API keys in user secrets, fed from a git-ignored `.env` shared with Docker Compose
 - [x] SQL Server 2022 containerized with Docker Compose (persistent volume, health check)
 - [x] Repository + dependency injection pattern
-- [x] ASP.NET Core Identity login/logout
-- [x] Role-based access control: `Admin`/`Viewer` roles, `RequireAdmin` policy on `MoviesController`
-- [x] Accounts provisioned from configuration (`SeedUsers` → `IdentitySeeder`); self-registration removed
-- [x] Earth-tone UI: forest green, warm white, and brown (glass navbar, hero, poster cards, themed modals and alerts)
+- [ ] ASP.NET Core Identity login/logout (built, currently commented out for open CRUD access)
+- [ ] Role-based access control: `Admin`/`Viewer` roles, `RequireAdmin` policy on `MoviesController` (built, currently commented out)
+- [ ] Accounts provisioned from configuration (`SeedUsers` → `IdentitySeeder`); self-registration removed (built, currently commented out)
+- [x] Earth-tone UI: forest green, warm white, and brown (glass navbar, landing hero, themed table, modals, and alerts)
 - [x] Responsive layout for desktop and mobile
 - [x] Light/dark mode toggle
 - [ ] Admin screens for Genres, Directors, Studios, and Reviews
@@ -201,8 +210,9 @@ Nothing secret lives in `appsettings*.json` or git. `.env` (git-ignored; templat
 | `MSSQL_PORT`, `MSSQL_SA_PASSWORD` | `docker-compose.yml` (published port and SA password) **and** the connection string |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_DISPLAY_NAME` | `SeedUsers:0:*`, read by `Data/IdentitySeeder.cs` |
 | `TMDB_API_KEY`, `OMDB_API_KEY` (optional) | `MovieLookup:TmdbApiKey` / `MovieLookup:OmdbApiKey` |
+| `AZURE_STORAGE_CONNECTION_STRING` (default `"UseDevelopmentStorage=true"` = Azurite; blank = local disk), `AZURE_POSTER_CONTAINER` | `PosterStorage:ConnectionString` / `PosterStorage:ContainerName`, read by `Services/PosterStorage/` |
 
-`scripts/setup-secrets.sh` writes these into the project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) (`UserSecretsId` in `MoviesAdmin.csproj`; stored under `~/.microsoft/usersecrets/`), which ASP.NET Core and `dotnet ef` load automatically in Development. Inspect them with `dotnet user-secrets list --project MoviesAdmin`. Outside Development, use environment variables (`ConnectionStrings__DefaultConnection`, `SeedUsers__0__Password`, `MovieLookup__TmdbApiKey`, ...). The app stops at startup with a clear message if the connection string is missing.
+`scripts/setup-secrets.sh` writes these into the project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) (`UserSecretsId` in `MoviesAdmin.csproj`; stored under `~/.microsoft/usersecrets/`), which ASP.NET Core and `dotnet ef` load automatically in Development. Inspect them with `dotnet user-secrets list --project MoviesAdmin`. Outside Development, use environment variables (`ConnectionStrings__DefaultConnection`, `SeedUsers__0__Password`, `MovieLookup__TmdbApiKey`, `PosterStorage__ConnectionString`, ...). The app stops at startup with a clear message if the database connection string is missing or the Azure Storage connection string is malformed.
 
 > Older commits contain the previous development SA and admin passwords in `appsettings.Development.json`. Treat those values as public and choose new ones in `.env`. A new SA password only applies to a fresh volume (`docker compose down -v`).
 
