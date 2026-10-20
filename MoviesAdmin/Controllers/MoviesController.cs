@@ -1,6 +1,7 @@
 // using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.MovieLookup;
@@ -108,19 +109,28 @@ namespace MoviesAdmin.Controllers
         public async Task<IActionResult> Create()
         {
             var model = new MovieFormViewModel();
-            await PopulateFormOptionsAsync(model);
+            await PopulateViewBagAsync(model);
             return PartialView("Partials/_Create", model);
         }
 
         // POST: Movies/Create
+        // The poster file is posted as its own ImageUpload parameter (the file input's name);
+        // [PosterFile] checks its type and size like any other validation attribute.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(MovieFormViewModel model)
+        public async Task<IActionResult> Create(MovieFormViewModel model, [PosterFile] IFormFile? ImageUpload)
         {
-            await ValidateReferencesAsync(model);
-            if (!ModelState.IsValid)
+            // Validate if the poster is missing (a poster URL filled in from an online source counts)
+            if (ImageUpload == null && string.IsNullOrWhiteSpace(model.PosterUrl))
             {
-                return await FormValidationFailedAsync(model, existingPosterImagePath: null);
+                // Add a validation error
+                ModelState.AddModelError("ImageUpload", "Poster image file is required.");
+            }
+
+            await ValidateReferencesAsync(model);
+            if (!ModelState.IsValid) // validate input
+            {
+                return await FormValidationFailedAsync(model);
             }
 
             var movie = new Movie
@@ -135,16 +145,11 @@ namespace MoviesAdmin.Controllers
                 StudioId = model.StudioId
             };
 
-            if (model.PosterImageFile != null)
+            if (ImageUpload != null)
             {
-                var (success, pathOrError) = await TrySavePosterImageAsync(model.PosterImageFile);
-                if (!success)
-                {
-                    ModelState.AddModelError(nameof(model.PosterImageFile), pathOrError);
-                    return await FormValidationFailedAsync(model, existingPosterImagePath: null);
-                }
-
-                movie.PosterImagePath = pathOrError;
+                // Upload file to Azure Storage (after input validation occurs) and set the
+                // image URL in the movie record
+                movie.PosterImagePath = await UploadPosterAsync(ImageUpload);
             }
 
             AssignGenres(movie, model.SelectedGenreIds);
@@ -180,22 +185,24 @@ namespace MoviesAdmin.Controllers
                 ReleaseDate = movie.ReleaseDate,
                 ContentRating = movie.ContentRating,
                 PosterUrl = movie.PosterUrl,
-                ExistingPosterImagePath = movie.PosterImagePath,
+                PosterImagePath = movie.PosterImagePath,
                 TrailerUrl = movie.Trailer?.YouTubeUrl,
                 DirectorId = movie.DirectorId,
                 StudioId = movie.StudioId,
                 SelectedGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList()
             };
             model.SetRuntime(movie.RuntimeMinutes);
-            await PopulateFormOptionsAsync(model);
+            await PopulateViewBagAsync(model);
 
             return PartialView("Partials/_Edit", model);
         }
 
         // POST: Movies/Edit/5
+        // PosterImagePath comes back in a hidden field; the existing poster is kept unless a new
+        // ImageUpload replaces it.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, MovieFormViewModel model)
+        public async Task<IActionResult> Edit(int id, MovieFormViewModel model, [PosterFile] IFormFile? ImageUpload)
         {
             if (id != model.Id)
             {
@@ -208,10 +215,13 @@ namespace MoviesAdmin.Controllers
                 return NotFound();
             }
 
+            // The saved poster always comes from the database, never from the posted hidden field.
+            model.PosterImagePath = movie.PosterImagePath;
+
             await ValidateReferencesAsync(model);
             if (!ModelState.IsValid)
             {
-                return await FormValidationFailedAsync(model, movie.PosterImagePath);
+                return await FormValidationFailedAsync(model);
             }
 
             movie.Title = model.Title;
@@ -223,17 +233,12 @@ namespace MoviesAdmin.Controllers
             movie.DirectorId = model.DirectorId;
             movie.StudioId = model.StudioId;
 
-            if (model.PosterImageFile != null)
+            if (ImageUpload != null)
             {
-                var (success, pathOrError) = await TrySavePosterImageAsync(model.PosterImageFile);
-                if (!success)
-                {
-                    ModelState.AddModelError(nameof(model.PosterImageFile), pathOrError);
-                    return await FormValidationFailedAsync(model, movie.PosterImagePath);
-                }
-
-                await _posterStorage.DeleteAsync(movie.PosterImagePath);
-                movie.PosterImagePath = pathOrError;
+                // Replace the poster: upload the new file, then remove the old blob/file.
+                var oldPosterImagePath = movie.PosterImagePath;
+                movie.PosterImagePath = await UploadPosterAsync(ImageUpload);
+                await _posterStorage.DeleteAsync(oldPosterImagePath);
             }
 
             // Modeled after the standard EF Core many-to-many-via-explicit-join-entity tutorial
@@ -324,10 +329,9 @@ namespace MoviesAdmin.Controllers
             return Json(new { success = true });
         }
 
-        private async Task<IActionResult> FormValidationFailedAsync(MovieFormViewModel model, string? existingPosterImagePath)
+        private async Task<IActionResult> FormValidationFailedAsync(MovieFormViewModel model)
         {
-            model.ExistingPosterImagePath = existingPosterImagePath;
-            await PopulateFormOptionsAsync(model);
+            await PopulateViewBagAsync(model);
             Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
             return PartialView(model.IsEdit ? "Partials/_Edit" : "Partials/_Create", model);
         }
@@ -364,44 +368,35 @@ namespace MoviesAdmin.Controllers
             }
         }
 
-        // Fills the Genre/Director/Studio pickers the form needs to render, whether this is a
-        // fresh Create/Edit load or a re-render after a validation failure.
-        private async Task PopulateFormOptionsAsync(MovieFormViewModel model)
+        // Fills the Director/Studio dropdowns (SelectLists, used with asp-items), the Genre checkboxes
+        // and the lookup sources the form needs to render, whether this is a fresh Create/Edit load
+        // or a re-render after a validation failure.
+        private async Task PopulateViewBagAsync(MovieFormViewModel model)
         {
-            var genres = await _genreRepository.GetAllAsync();
-            model.AvailableGenres = genres
-                .OrderBy(g => g.Name)
-                .Select(g => new NamedOptionViewModel { Id = g.Id, Name = g.Name })
-                .ToList();
-
             var directors = await _directorRepository.GetAllAsync();
-            model.AvailableDirectors = directors
-                .OrderBy(d => d.Name)
-                .Select(d => new NamedOptionViewModel { Id = d.Id, Name = d.Name })
-                .ToList();
+            ViewBag.DirectorId = new SelectList(directors.OrderBy(d => d.Name), "Id", "Name", model.DirectorId);
 
             var studios = await _studioRepository.GetAllAsync();
-            model.AvailableStudios = studios
-                .OrderBy(s => s.Name)
-                .Select(s => new NamedOptionViewModel { Id = s.Id, Name = s.Name })
-                .ToList();
+            ViewBag.StudioId = new SelectList(studios.OrderBy(s => s.Name), "Id", "Name", model.StudioId);
 
-            model.LookupSources = _lookupProviders
+            var genres = await _genreRepository.GetAllAsync();
+            ViewBag.Genres = genres.OrderBy(g => g.Name).ToList();
+
+            ViewBag.LookupSources = _lookupProviders
                 .Select(p => new LookupSourceViewModel { Key = p.Key, Name = p.DisplayName, IsAvailable = p.IsConfigured })
                 .ToList();
         }
 
-        // Type and size are already enforced by [PosterFile] on MovieFormViewModel; this re-checks
-        // because it's the last line before a user-supplied file is stored (Azure Blob or wwwroot).
-        private async Task<(bool Success, string PathOrError)> TrySavePosterImageAsync(IFormFile file)
+        // Saves the poster under a unique filename and returns its URL (Azure Blob Storage) or
+        // wwwroot path; ImageUpload has already passed [PosterFile] by the time it gets here.
+        private async Task<string> UploadPosterAsync(IFormFile imageUpload)
         {
-            var posterFile = new PosterFileAttribute();
-            if (!posterFile.IsValid(file))
-            {
-                return (false, posterFile.ErrorMessage!);
-            }
+            // Make a unique filename (GUID.ext)
+            string extension = Path.GetExtension(imageUpload.FileName).ToLowerInvariant(); // includes the leading dot, e.g. ".jpg"
+            string newFileName = $"{Guid.NewGuid()}{extension}";
 
-            return (true, await _posterStorage.SaveAsync(file, HttpContext.RequestAborted));
+            // Upload file to Azure Storage
+            return await _posterStorage.UploadFileAsync(imageUpload, newFileName, HttpContext.RequestAborted);
         }
     }
 }

@@ -111,7 +111,7 @@ builder.Services.Configure<PosterStorageOptions>(builder.Configuration.GetSectio
 builder.Services.AddSingleton<LocalPosterStorage>();
 if (builder.Configuration.GetSection(PosterStorageOptions.SectionName).Get<PosterStorageOptions>()?.UseAzureBlob == true)
 {
-    builder.Services.AddSingleton<IPosterStorage, AzureBlobPosterStorage>();
+    builder.Services.AddSingleton<IPosterStorage, AzureStorageService>();
 }
 else
 {

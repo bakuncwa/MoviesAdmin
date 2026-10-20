@@ -7,7 +7,7 @@ namespace MoviesAdmin.Validation
     // Validates an uploaded poster (IFormFile) by extension and size. Runs on the server like any
     // ValidationAttribute, and also emits data-val-posterfile-* attributes that wwwroot/js/validation.js
     // checks in the browser, so a wrong file type or an oversized file is flagged before upload.
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public sealed class PosterFileAttribute : ValidationAttribute, IClientModelValidator
     {
         public static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };

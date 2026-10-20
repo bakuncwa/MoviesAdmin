@@ -124,7 +124,7 @@
 
     function hasUploadedPoster(form) {
         const fileInput = form.querySelector('input[type="file"]');
-        return !!(fileInput?.files?.length || form.querySelector('[name="ExistingPosterImagePath"]')?.value);
+        return !!(fileInput?.files?.length || form.querySelector('[name="PosterImagePath"]')?.value);
     }
 
     function updatePosterPreview(form) {

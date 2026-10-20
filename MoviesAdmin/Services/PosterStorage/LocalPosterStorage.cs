@@ -1,7 +1,7 @@
 namespace MoviesAdmin.Services.PosterStorage
 {
     // Saves posters under wwwroot/images/movies. Used when no Azure Blob connection string is
-    // configured, and by AzureBlobPosterStorage to clean up posters uploaded before it was.
+    // configured, and by AzureStorageService to clean up posters uploaded before it was.
     public sealed class LocalPosterStorage : IPosterStorage
     {
         private const string UploadsRelativeFolder = "images/movies";
@@ -13,12 +13,11 @@ namespace MoviesAdmin.Services.PosterStorage
             _environment = environment;
         }
 
-        public async Task<string> SaveAsync(IFormFile file, CancellationToken cancellationToken = default)
+        public async Task<string> UploadFileAsync(IFormFile file, string fileName, CancellationToken cancellationToken = default)
         {
             var uploadsFolder = Path.Combine(_environment.WebRootPath, UploadsRelativeFolder);
             Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = PosterFileNames.NewName(file);
             await using (var stream = new FileStream(Path.Combine(uploadsFolder, fileName), FileMode.Create))
             {
                 await file.CopyToAsync(stream, cancellationToken);

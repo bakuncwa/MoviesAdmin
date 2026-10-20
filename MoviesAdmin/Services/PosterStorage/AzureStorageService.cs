@@ -8,33 +8,39 @@ namespace MoviesAdmin.Services.PosterStorage
     // Saves posters to an Azure Blob Storage container whose access level is "Blob" (public read
     // access for blobs only): anyone can load a poster by its URL, but nobody can list the
     // container. The blob's URL is what gets stored on the movie, so views link to it directly.
-    public sealed class AzureBlobPosterStorage : IPosterStorage
+    public sealed class AzureStorageService : IPosterStorage
     {
         private readonly BlobContainerClient _container;
         private readonly LocalPosterStorage _localPosters;
-        private readonly ILogger<AzureBlobPosterStorage> _logger;
+        private readonly ILogger<AzureStorageService> _logger;
         private bool _containerChecked;
 
-        public AzureBlobPosterStorage(IOptions<PosterStorageOptions> options, LocalPosterStorage localPosters, ILogger<AzureBlobPosterStorage> logger)
+        public AzureStorageService(IOptions<PosterStorageOptions> options, LocalPosterStorage localPosters, ILogger<AzureStorageService> logger)
         {
             _container = new BlobContainerClient(options.Value.ConnectionString, options.Value.ContainerName);
             _localPosters = localPosters;
             _logger = logger;
         }
 
-        public async Task<string> SaveAsync(IFormFile file, CancellationToken cancellationToken = default)
+        // Returns the URL of the new blob, e.g. http://127.0.0.1:10000/devstoreaccount1/posters/<guid>.jpg
+        // with Azurite in Docker.
+        public async Task<string> UploadFileAsync(IFormFile file, string fileName, CancellationToken cancellationToken = default)
         {
             await EnsureContainerAsync(cancellationToken);
 
-            var blob = _container.GetBlobClient(PosterFileNames.NewName(file));
-            await using var stream = file.OpenReadStream();
-            // The content type is what lets a browser show the blob inline as an image.
-            await blob.UploadAsync(stream, new BlobUploadOptions
+            var blobClient = _container.GetBlobClient(fileName);
+            var options = new BlobUploadOptions
             {
-                HttpHeaders = new BlobHttpHeaders { ContentType = PosterFileNames.ContentType(blob.Name) }
-            }, cancellationToken);
+                // The content type is what lets a browser show the blob inline as an image.
+                HttpHeaders = new BlobHttpHeaders { ContentType = PosterFileNames.ContentType(fileName) }
+            };
 
-            return blob.Uri.ToString();
+            await using (var stream = file.OpenReadStream())
+            {
+                await blobClient.UploadAsync(stream, options, cancellationToken);
+            }
+
+            return blobClient.Uri.ToString(); // the URL of the new file
         }
 
         public async Task DeleteAsync(string? posterImagePath, CancellationToken cancellationToken = default)

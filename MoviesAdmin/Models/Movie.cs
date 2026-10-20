@@ -41,11 +41,12 @@ namespace MoviesAdmin.Models
         public string? PosterUrl { get; set; }
 
         // Poster image uploaded through the admin UI: its Azure Blob Storage URL (e.g.
-        // "https://<account>.blob.core.windows.net/posters/abc.jpg"), or a relative path under wwwroot
+        // "https://<account>.blob.core.windows.net/posters/abc.jpg", or with Azurite in Docker
+        // "http://127.0.0.1:10000/devstoreaccount1/posters/abc.jpg"), or a relative path under wwwroot
         // (e.g. "images/movies/inception.jpg") when blob storage isn't configured. Distinct from PosterUrl, which is reserved for posters sourced from an
         // external movie API. Views should fall back to PosterUrl when this is null.
         [StringLength(500, ErrorMessage = "Poster image path can be at most {1} characters.")]
-        [RegularExpression(@"^(https://\S+|[\w\-./]+)\.(?i:jpg|jpeg|png|gif|webp)$", ErrorMessage = "Poster image path must be an https:// URL or a relative path ending in .jpg, .jpeg, .png, .gif, or .webp.")]
+        [RegularExpression(@"^(https?://\S+|[\w\-./]+)\.(?i:jpg|jpeg|png|gif|webp)$", ErrorMessage = "Poster image path must be an http:// or https:// URL or a relative path ending in .jpg, .jpeg, .png, .gif, or .webp.")]
         public string? PosterImagePath { get; set; }
 
         // Optional: not every movie has a director/studio recorded yet, so both FKs are nullable

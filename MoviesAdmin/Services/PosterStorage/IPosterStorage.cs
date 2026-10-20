@@ -1,13 +1,15 @@
 namespace MoviesAdmin.Services.PosterStorage
 {
-    // Where admin-uploaded poster images live. The value SaveAsync returns is stored in
-    // Movie.PosterImagePath: an absolute https:// URL for Azure Blob Storage, or a path under
+    // Where admin-uploaded poster images live. The value UploadFileAsync returns is stored in
+    // Movie.PosterImagePath: the blob's absolute URL for Azure Blob Storage (http://127.0.0.1:10000/
+    // devstoreaccount1/posters/... with Azurite, https://... in Azure), or a path under
     // wwwroot (e.g. "images/movies/abc.jpg") for local storage. MoviePosterResolver turns either
     // into an <img src>.
     public interface IPosterStorage
     {
-        // The file has already passed [PosterFile] (type and size) by the time it gets here.
-        Task<string> SaveAsync(IFormFile file, CancellationToken cancellationToken = default);
+        // Saves the file under fileName (the controller makes it unique: GUID.ext) and returns the
+        // poster's URL/path. The file has already passed PosterFileAttribute (type and size).
+        Task<string> UploadFileAsync(IFormFile file, string fileName, CancellationToken cancellationToken = default);
 
         // Best-effort: a missing or foreign poster is ignored, never an error.
         Task DeleteAsync(string? posterImagePath, CancellationToken cancellationToken = default);
@@ -37,10 +39,6 @@ namespace MoviesAdmin.Services.PosterStorage
             [".gif"] = "image/gif",
             [".webp"] = "image/webp"
         };
-
-        // A generated name, so a user-supplied file name never reaches a path or blob name.
-        public static string NewName(IFormFile file) =>
-            $"{Guid.NewGuid():N}{Path.GetExtension(file.FileName).ToLowerInvariant()}";
 
         public static string ContentType(string fileName) =>
             ContentTypes.TryGetValue(Path.GetExtension(fileName), out var type) ? type : "application/octet-stream";

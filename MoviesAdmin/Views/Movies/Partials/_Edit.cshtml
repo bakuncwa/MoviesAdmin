@@ -10,7 +10,7 @@
 <form id="movie-form" action="@Url.Action("Edit", "Movies", new { id = Model.Id })" method="post" enctype="multipart/form-data" novalidate>
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
-    <input type="hidden" asp-for="ExistingPosterImagePath" />
+    <input type="hidden" asp-for="PosterImagePath" />
     <partial name="Partials/_Form" model="Model" />
     <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancel</button>

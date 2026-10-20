@@ -9,7 +9,10 @@
     var isEdit = Model.IsEdit;
     // Set on a 422 re-render; movies.js also reveals the banner when client-side validation fails.
     var hasErrors = !ViewData.ModelState.IsValid;
-    var anyLookupSource = Model.LookupSources.Any(s => s.IsAvailable);
+    // Options set by MoviesController.PopulateViewBagAsync.
+    var lookupSources = (List<MoviesAdmin.ViewModels.Movies.LookupSourceViewModel>)ViewBag.LookupSources;
+    var genres = (List<MoviesAdmin.Models.Genre>)ViewBag.Genres;
+    var anyLookupSource = lookupSources.Any(s => s.IsAvailable);
 }
 
 @* No min/max attributes on the number inputs: jQuery Validate would turn them into rules with
@@ -36,7 +39,7 @@
                         @* Otherwise every option is disabled and the closed select shows blank. *@
                         <option value="" selected>Source: none configured</option>
                     }
-                    @foreach (var source in Model.LookupSources)
+                    @foreach (var source in lookupSources)
                     {
                         <option value="@source.Key" disabled="@(!source.IsAvailable)">@source.Name@(source.IsAvailable ? "" : " (no API key)")</option>
                     }
@@ -61,13 +64,20 @@
     <div class="row g-4">
         <!-- Left: image frame -->
         <div class="col-md-4 text-center">
-            <img id="movie-form-preview" src="@Model.ExistingPosterImageUrl" alt="Poster preview"
+            <img id="movie-form-preview" src="@Model.PosterPreviewUrl" alt="Poster preview"
                  class="img-fluid rounded border mb-2" style="max-height: 260px; width: 100%; object-fit: cover;" />
 
+            @* Posted as MoviesController's ImageUpload parameter, not a view-model property; the
+               data-val-posterfile-* attributes give it the same browser check [PosterFile] does on
+               the server (wwwroot/js/validation.js). *@
             <div class="mb-2 text-start">
-                <label asp-for="PosterImageFile" class="form-label small"></label>
-                <input asp-for="PosterImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control form-control-sm" />
-                <span asp-validation-for="PosterImageFile" class="text-danger small"></span>
+                <label for="ImageUpload" class="form-label small">Poster image</label>
+                <input type="file" id="ImageUpload" name="ImageUpload" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control form-control-sm"
+                       data-val="true"
+                       data-val-posterfile="@(new MoviesAdmin.Validation.PosterFileAttribute().ErrorMessage)"
+                       data-val-posterfile-extensions="@string.Join(",", MoviesAdmin.Validation.PosterFileAttribute.AllowedExtensions)"
+                       data-val-posterfile-maxbytes="@MoviesAdmin.Validation.PosterFileAttribute.MaxBytes" />
+                @Html.ValidationMessage("ImageUpload", new { @class = "text-danger small" })
             </div>
             <div class="mb-2 text-start">
                 <label asp-for="PosterUrl" class="form-label small"></label>
@@ -126,39 +136,31 @@
                 <div class="col-sm-6 mb-3">
                     <label asp-for="DirectorId" class="form-label"></label>
                     @* Enhanced into a searchable picker with an "Add ..." option by movies.js (Tom Select). *@
-                    <select asp-for="DirectorId" class="form-select" data-credit-picker="director"
+                    <select asp-for="DirectorId" asp-items="ViewBag.DirectorId" class="form-select" data-credit-picker="director"
                             data-add-url="@Url.Action("AddDirector", "MovieOptions")" data-placeholder="Search or add a director...">
                         <option value="">— None —</option>
-                        @foreach (var director in Model.AvailableDirectors)
-                        {
-                            <option value="@director.Id" selected="@(Model.DirectorId == director.Id)">@director.Name</option>
-                        }
                     </select>
                     <span asp-validation-for="DirectorId" class="text-danger small"></span>
                 </div>
                 <div class="col-sm-6 mb-3">
                     <label asp-for="StudioId" class="form-label"></label>
-                    <select asp-for="StudioId" class="form-select" data-credit-picker="studio"
+                    <select asp-for="StudioId" asp-items="ViewBag.StudioId" class="form-select" data-credit-picker="studio"
                             data-add-url="@Url.Action("AddStudio", "MovieOptions")" data-placeholder="Search or add a studio...">
                         <option value="">— None —</option>
-                        @foreach (var studio in Model.AvailableStudios)
-                        {
-                            <option value="@studio.Id" selected="@(Model.StudioId == studio.Id)">@studio.Name</option>
-                        }
                     </select>
                     <span asp-validation-for="StudioId" class="text-danger small"></span>
                 </div>
             </div>
             <div class="mb-1">
                 <label class="form-label d-block">Genres</label>
-                @if (Model.AvailableGenres.Count == 0)
+                @if (genres.Count == 0)
                 {
                     <p class="text-body-secondary small mb-0">No genres yet.</p>
                 }
                 else
                 {
                     <div class="d-flex flex-wrap gap-3">
-                        @foreach (var genre in Model.AvailableGenres)
+                        @foreach (var genre in genres)
                         {
                             var checkboxId = $"genre-{genre.Id}";
                             <div class="form-check form-check-inline">

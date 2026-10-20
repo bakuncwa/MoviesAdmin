@@ -6,6 +6,8 @@ using MoviesAdmin.Validation;
 namespace MoviesAdmin.ViewModels.Movies
 {
     // Backs the Create/Edit modal form (Views/Movies/Partials/_Create.cshtml / _Edit.cshtml, fields in _Form.cshtml). Id is null for Create.
+    // The Director/Studio/Genre options and lookup sources come in through ViewBag (see
+    // MoviesController.PopulateViewBag), not this model.
     // Validation attributes mirror the entities they map to (Models/Movie.cs, Models/Trailer.cs)
     // so the form rejects bad input with the same rules the entity itself enforces, before
     // anything reaches the repository/DB.
@@ -50,14 +52,12 @@ namespace MoviesAdmin.ViewModels.Movies
         [Display(Name = "Poster URL (external)")]
         public string? PosterUrl { get; set; }
 
-        [PosterFile]
-        [Display(Name = "Poster image")]
-        public IFormFile? PosterImageFile { get; set; }
-
-        // Carries the already-saved image path across the round trip so a validation failure (or
-        // an edit that doesn't touch the image) doesn't lose it; not user-editable.
+        // The uploaded poster file isn't on this model: it's posted as its own "ImageUpload" action
+        // parameter (see MoviesController.Create/Edit). This carries the already-saved poster's URL
+        // across the round trip as a hidden field on Edit, so a validation failure (or an edit that
+        // doesn't touch the image) doesn't lose it; not user-editable.
         [ValidateNever]
-        public string? ExistingPosterImagePath { get; set; }
+        public string? PosterImagePath { get; set; }
 
         [StringLength(500, ErrorMessage = "Trailer URL can be at most {1} characters.")]
         [RegularExpression(
@@ -77,21 +77,6 @@ namespace MoviesAdmin.ViewModels.Movies
 
         [Display(Name = "Genres")]
         public List<int> SelectedGenreIds { get; set; } = new();
-
-        // Populated by the controller for rendering the form's dropdowns/checkboxes; never bound
-        // from the post itself (ValidateNever — these are reference data, not user input).
-        [ValidateNever]
-        public List<NamedOptionViewModel> AvailableGenres { get; set; } = new();
-
-        [ValidateNever]
-        public List<NamedOptionViewModel> AvailableDirectors { get; set; } = new();
-
-        [ValidateNever]
-        public List<NamedOptionViewModel> AvailableStudios { get; set; } = new();
-
-        // Options for the "Fill from an online source" dropdown (Services/MovieLookup).
-        [ValidateNever]
-        public List<LookupSourceViewModel> LookupSources { get; set; } = new();
 
         [ValidateNever]
         public bool IsEdit => Id.HasValue;
@@ -119,8 +104,8 @@ namespace MoviesAdmin.ViewModels.Movies
         // Form preview: the uploaded poster if there is one, else the external PosterUrl, else the
         // placeholder (same priority as MoviePosterResolver uses for the catalog).
         [ValidateNever]
-        public string ExistingPosterImageUrl => !string.IsNullOrWhiteSpace(ExistingPosterImagePath)
-            ? MoviePosterResolver.UploadedPosterUrl(ExistingPosterImagePath)
+        public string PosterPreviewUrl => !string.IsNullOrWhiteSpace(PosterImagePath)
+            ? MoviePosterResolver.UploadedPosterUrl(PosterImagePath)
             : !string.IsNullOrWhiteSpace(PosterUrl) ? PosterUrl : MoviePosterResolver.PlaceholderImageUrl;
     }
 

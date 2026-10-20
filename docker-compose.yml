@@ -30,7 +30,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # Poster uploads (Services/PosterStorage/AzureBlobPosterStorage.cs). The app reaches it through
+  # Poster uploads (Services/PosterStorage/AzureStorageService.cs). The app reaches it through
   # AZURE_STORAGE_CONNECTION_STRING="UseDevelopmentStorage=true" in .env, which the Azure SDK maps to
   # http://127.0.0.1:10000/devstoreaccount1, so the blob port is fixed at 10000. The app creates the
   # "posters" container with public read access for blobs, so <img> tags load blobs directly.
