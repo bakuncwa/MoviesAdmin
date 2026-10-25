@@ -11,9 +11,10 @@ namespace MoviesAdmin.Models
         [Required(ErrorMessage = "Genre name is required.")]
         [StringLength(50, MinimumLength = 2, ErrorMessage = "Genre name must be between {2} and {1} characters.")]
         [RegularExpression(@"^[\p{L}\p{N}\s\-&]+$", ErrorMessage = "Genre name can only contain letters, numbers, spaces, hyphens, and ampersands.")]
+        [Display(Name = "Genre")]
         public string Name { get; set; } = string.Empty;
 
-        // Movies assigned to this genre (many-to-many via the MovieGenre join entity).
-        public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
+        // One-to-many: a genre can have many movies, and a movie belongs to one genre (Movie.GenreId).
+        public ICollection<Movie> Movies { get; set; } = new List<Movie>();
     }
 }

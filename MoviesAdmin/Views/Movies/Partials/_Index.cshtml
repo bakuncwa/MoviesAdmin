@@ -25,7 +25,7 @@ else
                     <th scope="col">Release Date</th>
                     <th scope="col">Runtime</th>
                     <th scope="col">Rated</th>
-                    <th scope="col">Genres</th>
+                    <th scope="col">Genre</th>
                     <th scope="col">Reviews</th>
                     <th scope="col" class="text-end movie-actions-cell">Actions</th>
                 </tr>
@@ -33,7 +33,7 @@ else
             <tbody>
                 @foreach (var movie in Model.Movies)
                 {
-                    var genresText = string.IsNullOrEmpty(movie.GenreNames) ? "—" : movie.GenreNames;
+                    var genresText = string.IsNullOrEmpty(movie.GenreName) ? "—" : movie.GenreName;
                     var releaseText = movie.ReleaseDate.ToString("MMM d, yyyy");
 
                     <tr data-movie-id="@movie.Id">
@@ -47,8 +47,18 @@ else
                         </td>
                         <td>@releaseText</td>
                         <td>@movie.RuntimeText</td>
-                        <td><span class="rating-badge">@movie.ContentRatingLabel</span></td>
-                        <td>@genresText</td>
+                        <td><span class="rating-badge">@movie.AudienceRatingName</span></td>
+                        <td>
+                            @if (string.IsNullOrEmpty(movie.GenreName))
+                            {
+                                @genresText
+                            }
+                            else
+                            {
+                                @* GET Movies/{genre}: the catalog filtered to this genre. *@
+                                <a href="@Url.RouteUrl("movies-genre", new { genre = movie.GenreSlug })">@movie.GenreName</a>
+                            }
+                        </td>
                         <td>
                             @if (movie.AverageRating.HasValue)
                             {
@@ -71,7 +81,7 @@ else
                                         data-title="@movie.Title"
                                         data-release="@releaseText"
                                         data-runtime="@movie.RuntimeText"
-                                        data-rating="@movie.ContentRatingLabel"
+                                        data-rating="@movie.AudienceRatingName"
                                         data-genres="@genresText">
                                     <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
                                 </button>

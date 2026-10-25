@@ -16,7 +16,8 @@ namespace MoviesAdmin.Repositories
             // SearchAsync below stays leaner (no Director/Studio/Trailer) since the admin table
             // doesn't display them — see MovieListItemViewModel.
             return await Set
-                .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                .Include(m => m.Genre)
+                .Include(m => m.AudienceRating)
                 .Include(m => m.Reviews).ThenInclude(r => r.User)
                 .Include(m => m.Director)
                 .Include(m => m.Studio)
@@ -24,10 +25,11 @@ namespace MoviesAdmin.Repositories
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public async Task<IEnumerable<Movie>> SearchAsync(string? titleQuery, int? genreId, int? releaseYear, ContentRating? contentRating, MovieSortOrder sortOrder)
+        public async Task<IEnumerable<Movie>> SearchAsync(string? titleQuery, int? genreId, int? releaseYear, int? audienceRatingId, MovieSortOrder sortOrder)
         {
             var query = Set
-                .Include(m => m.MovieGenres).ThenInclude(mg => mg.Genre)
+                .Include(m => m.Genre)
+                .Include(m => m.AudienceRating)
                 .Include(m => m.Reviews)
                 .AsQueryable();
 
@@ -38,7 +40,7 @@ namespace MoviesAdmin.Repositories
 
             if (genreId.HasValue)
             {
-                query = query.Where(m => m.MovieGenres.Any(mg => mg.GenreId == genreId.Value));
+                query = query.Where(m => m.GenreId == genreId.Value);
             }
 
             if (releaseYear.HasValue)
@@ -46,9 +48,9 @@ namespace MoviesAdmin.Repositories
                 query = query.Where(m => m.ReleaseDate.Year == releaseYear.Value);
             }
 
-            if (contentRating.HasValue)
+            if (audienceRatingId.HasValue)
             {
-                query = query.Where(m => m.ContentRating == contentRating.Value);
+                query = query.Where(m => m.AudienceRatingId == audienceRatingId.Value);
             }
 
             // Title is the tie-breaker everywhere so equal keys always come back in the same order.

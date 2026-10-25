@@ -17,7 +17,7 @@ namespace MoviesAdmin.Data
 
         public DbSet<Movie> Movies => Set<Movie>();
         public DbSet<Genre> Genres => Set<Genre>();
-        public DbSet<MovieGenre> MovieGenres => Set<MovieGenre>();
+        public DbSet<AudienceRating> AudienceRatings => Set<AudienceRating>();
         public DbSet<Review> Reviews => Set<Review>();
         public DbSet<Director> Directors => Set<Director>();
         public DbSet<Studio> Studios => Set<Studio>();
@@ -31,18 +31,24 @@ namespace MoviesAdmin.Data
                 .HasIndex(g => g.Name)
                 .IsUnique();
 
-            builder.Entity<MovieGenre>()
-                .HasKey(mg => new { mg.MovieId, mg.GenreId });
+            builder.Entity<AudienceRating>()
+                .HasIndex(r => r.Name)
+                .IsUnique();
 
-            builder.Entity<MovieGenre>()
-                .HasOne(mg => mg.Movie)
-                .WithMany(m => m.MovieGenres)
-                .HasForeignKey(mg => mg.MovieId);
+            // One-to-many: a genre has many movies, a movie belongs to one genre.
+            builder.Entity<Movie>()
+                .HasOne(m => m.Genre)
+                .WithMany(g => g.Movies)
+                .HasForeignKey(m => m.GenreId)
+                // Restrict: a genre that still has movies can't be deleted out from under them.
+                .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<MovieGenre>()
-                .HasOne(mg => mg.Genre)
-                .WithMany(g => g.MovieGenres)
-                .HasForeignKey(mg => mg.GenreId);
+            // One-to-many: an audience rating has many movies, a movie belongs to one rating.
+            builder.Entity<Movie>()
+                .HasOne(m => m.AudienceRating)
+                .WithMany(r => r.Movies)
+                .HasForeignKey(m => m.AudienceRatingId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Review>()
                 .HasOne(r => r.Movie)
@@ -63,12 +69,6 @@ namespace MoviesAdmin.Data
             builder.Entity<Studio>()
                 .HasIndex(s => s.Name)
                 .IsUnique();
-
-            // Stored as the enum name ("PG13") rather than an int, so the column is readable in SQL.
-            builder.Entity<Movie>()
-                .Property(m => m.ContentRating)
-                .HasConversion<string>()
-                .HasMaxLength(10);
 
             builder.Entity<Movie>()
                 .HasOne(m => m.Director)
@@ -96,7 +96,8 @@ namespace MoviesAdmin.Data
                 // movie, so deleting the movie should take its one trailer row with it.
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // --- Reference data (SeedDirectorsStudios + SeedGenresContentRating migrations) ----
+            // --- Reference data (SeedDirectorsStudios, SeedGenresContentRating and
+            // GenreAudienceRatingOneToMany migrations) ----
             // Five directors, each paired with the studio behind one of their signature films,
             // so the Director/Studio pickers on the movie form aren't empty on a fresh database.
             builder.Entity<Director>().HasData(
@@ -126,13 +127,14 @@ namespace MoviesAdmin.Data
                     ReleaseDate = new DateTime(2005, 9, 16),
                     RuntimeMinutes = 129,
                     PosterUrl = "https://image.tmdb.org/t/p/w500/o8UhmEbWPHmTUxP0lMuCoqNkbB3.jpg",
-                    ContentRating = ContentRating.PG,
+                    GenreId = 6, // Romance
+                    AudienceRatingId = 2, // PG
                     DirectorId = 1,
                     StudioId = 1
                 }
             );
 
-            // Genre picker options (SeedGenresContentRating migration).
+            // Genre options (SeedGenresContentRating migration).
             builder.Entity<Genre>().HasData(
                 new Genre { Id = 1, Name = "Action" },
                 new Genre { Id = 2, Name = "Animation" },
@@ -144,10 +146,13 @@ namespace MoviesAdmin.Data
                 new Genre { Id = 8, Name = "Thriller" }
             );
 
-            // Pride & Prejudice (2005): Drama, Romance.
-            builder.Entity<MovieGenre>().HasData(
-                new MovieGenre { MovieId = 1, GenreId = 4 },
-                new MovieGenre { MovieId = 1, GenreId = 6 }
+            // Audience rating options (GenreAudienceRatingOneToMany migration).
+            builder.Entity<AudienceRating>().HasData(
+                new AudienceRating { Id = 1, Name = "G", Description = "General Audiences" },
+                new AudienceRating { Id = 2, Name = "PG", Description = "Parental Guidance Suggested" },
+                new AudienceRating { Id = 3, Name = "PG-13", Description = "Parents Strongly Cautioned" },
+                new AudienceRating { Id = 4, Name = "R", Description = "Restricted" },
+                new AudienceRating { Id = 5, Name = "NC-17", Description = "Adults Only" }
             );
 
             // --- IAM (Identity/Access Management) setup -----------------------------------

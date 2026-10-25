@@ -2,7 +2,8 @@
 @using MoviesAdmin.ViewModels.Movies
 
 @{
-    ViewData["Title"] = "Movies";
+    // ViewBag.GenreName is set by MoviesController.Index when opened as /Movies/{genre}.
+    ViewData["Title"] = ViewBag.GenreName is string genreName ? $"{genreName} Movies" : "Movies";
     var query = Model.Query;
 }
 
@@ -25,7 +26,7 @@
             <option value="">All genres</option>
             @foreach (var genre in Model.GenreOptions)
             {
-                <option value="@genre.Id" selected="@(query.GenreId == genre.Id)">@genre.Name</option>
+                <option value="@genre.Id" data-slug="@MovieDisplayFormat.Slug(genre.Name)" selected="@(query.GenreId == genre.Id)">@genre.Name</option>
             }
         </select>
         <label for="filter-year" class="visually-hidden">Release year</label>
@@ -37,11 +38,11 @@
             }
         </select>
         <label for="filter-rating" class="visually-hidden">Content rating</label>
-        <select id="filter-rating" name="rating" class="form-select form-select-sm toolbar-select">
+        <select id="filter-rating" name="ratingId" class="form-select form-select-sm toolbar-select">
             <option value="">Any rating</option>
-            @foreach (var rating in Enum.GetValues<ContentRating>())
+            @foreach (var rating in Model.RatingOptions)
             {
-                <option value="@rating" selected="@(query.Rating == rating)">@rating.ToLabel()</option>
+                <option value="@rating.Id" selected="@(query.RatingId == rating.Id)">@rating.Name</option>
             }
         </select>
         <label for="catalog-sort" class="visually-hidden">Sort by</label>

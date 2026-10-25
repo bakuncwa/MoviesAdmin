@@ -6,7 +6,7 @@ using MoviesAdmin.Validation;
 namespace MoviesAdmin.ViewModels.Movies
 {
     // Backs the Create/Edit modal form (Views/Movies/Partials/_Create.cshtml / _Edit.cshtml, fields in _Form.cshtml). Id is null for Create.
-    // The Director/Studio/Genre options and lookup sources come in through ViewBag (see
+    // The Genre/Rating/Director/Studio options and lookup sources come in through ViewBag (see
     // MoviesController.PopulateViewBag), not this model.
     // Validation attributes mirror the entities they map to (Models/Movie.cs, Models/Trailer.cs)
     // so the form rejects bad input with the same rules the entity itself enforces, before
@@ -42,10 +42,12 @@ namespace MoviesAdmin.ViewModels.Movies
         [Display(Name = "Minutes")]
         public int? RuntimeMinutesPart { get; set; }
 
-        [Required(ErrorMessage = "Choose a rating (G, PG, PG-13, R, or NC-17).")]
-        [EnumDataType(typeof(ContentRating), ErrorMessage = "Choose a rating from the list.")]
+        // Nullable + [Required] so an unselected dropdown gets this message rather than a binding error.
+        // The controller also checks the id exists (see ValidateReferencesAsync).
+        [Required(ErrorMessage = "Choose an audience rating.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Choose an audience rating from the list.")]
         [Display(Name = "Rating")]
-        public ContentRating? ContentRating { get; set; }
+        public int? AudienceRatingId { get; set; }
 
         [StringLength(500, ErrorMessage = "Poster URL can be at most {1} characters.")]
         [RegularExpression(@"^https?://\S+$", ErrorMessage = "Poster URL must be a valid http:// or https:// address.")]
@@ -75,8 +77,10 @@ namespace MoviesAdmin.ViewModels.Movies
         [Display(Name = "Studio")]
         public int? StudioId { get; set; }
 
-        [Display(Name = "Genres")]
-        public List<int> SelectedGenreIds { get; set; } = new();
+        [Required(ErrorMessage = "Choose a genre.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a genre from the list.")]
+        [Display(Name = "Genre")]
+        public int? GenreId { get; set; }
 
         [ValidateNever]
         public bool IsEdit => Id.HasValue;

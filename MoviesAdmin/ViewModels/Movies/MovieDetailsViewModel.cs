@@ -17,11 +17,11 @@ namespace MoviesAdmin.ViewModels.Movies
 
         public string RuntimeText => MovieDisplayFormat.Runtime(RuntimeMinutes);
 
-        public string ContentRatingLabel { get; set; } = string.Empty;
+        public string AudienceRatingName { get; set; } = string.Empty;
 
         public string DisplayImageUrl { get; set; } = string.Empty;
 
-        public List<string> GenreNames { get; set; } = new();
+        public string? GenreName { get; set; }
 
         public double? AverageRating { get; set; }
 
@@ -45,12 +45,9 @@ namespace MoviesAdmin.ViewModels.Movies
                 Synopsis = movie.Synopsis,
                 ReleaseDate = movie.ReleaseDate,
                 RuntimeMinutes = movie.RuntimeMinutes,
-                ContentRatingLabel = movie.ContentRating.ToLabel(),
+                AudienceRatingName = movie.AudienceRating?.Name ?? "Not Rated",
                 DisplayImageUrl = MoviePosterResolver.Resolve(movie),
-                GenreNames = movie.MovieGenres
-                    .Select(mg => mg.Genre.Name)
-                    .OrderBy(name => name)
-                    .ToList(),
+                GenreName = movie.Genre?.Name,
                 AverageRating = movie.Reviews.Count == 0 ? null : movie.Reviews.Average(r => r.Rating),
                 ReviewCount = movie.Reviews.Count,
                 DirectorName = movie.Director?.Name,

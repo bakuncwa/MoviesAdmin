@@ -11,7 +11,6 @@
     var hasErrors = !ViewData.ModelState.IsValid;
     // Options set by MoviesController.PopulateViewBagAsync.
     var lookupSources = (List<MoviesAdmin.ViewModels.Movies.LookupSourceViewModel>)ViewBag.LookupSources;
-    var genres = (List<MoviesAdmin.Models.Genre>)ViewBag.Genres;
     var anyLookupSource = lookupSources.Any(s => s.IsAvailable);
 }
 
@@ -110,15 +109,11 @@
                     <span asp-validation-for="ReleaseDate" class="text-danger small"></span>
                 </div>
                 <div class="col-sm-6 mb-3">
-                    <label asp-for="ContentRating" class="form-label"></label>
-                    <select asp-for="ContentRating" class="form-select">
+                    <label asp-for="AudienceRatingId" class="form-label"></label>
+                    <select asp-for="AudienceRatingId" asp-items="ViewBag.AudienceRatingId" class="form-select">
                         <option value="">— Choose —</option>
-                        @foreach (var rating in Enum.GetValues<MoviesAdmin.Models.ContentRating>())
-                        {
-                            <option value="@rating" selected="@(Model.ContentRating == rating)">@rating.ToLabel()</option>
-                        }
                     </select>
-                    <span asp-validation-for="ContentRating" class="text-danger small"></span>
+                    <span asp-validation-for="AudienceRatingId" class="text-danger small"></span>
                 </div>
             </div>
             <div class="mb-3">
@@ -152,26 +147,11 @@
                 </div>
             </div>
             <div class="mb-1">
-                <label class="form-label d-block">Genres</label>
-                @if (genres.Count == 0)
-                {
-                    <p class="text-body-secondary small mb-0">No genres yet.</p>
-                }
-                else
-                {
-                    <div class="d-flex flex-wrap gap-3">
-                        @foreach (var genre in genres)
-                        {
-                            var checkboxId = $"genre-{genre.Id}";
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" name="SelectedGenreIds" value="@genre.Id" id="@checkboxId"
-                                       checked="@(Model.SelectedGenreIds.Contains(genre.Id))" />
-                                <label class="form-check-label" for="@checkboxId">@genre.Name</label>
-                            </div>
-                        }
-                    </div>
-                }
-                <span asp-validation-for="SelectedGenreIds" class="text-danger small"></span>
+                <label asp-for="GenreId" class="form-label"></label>
+                <select asp-for="GenreId" asp-items="ViewBag.GenreId" class="form-select">
+                    <option value="">— Choose —</option>
+                </select>
+                <span asp-validation-for="GenreId" class="text-danger small"></span>
             </div>
         </div>
     </div>

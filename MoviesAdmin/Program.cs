@@ -158,5 +158,14 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+// Catalog filtered to one genre by name: /Movies/drama, /Movies/action-adventure.
+// Registered after "default" so real actions (/Movies/Create, /Movies/Search, ...) still win.
+// The constraint only lets through what MovieDisplayFormat.Slug can produce (letters, digits,
+// hyphens; Genre.Name is at most 50 characters), so anything else is a 404 before Index runs.
+app.MapControllerRoute(
+    name: "movies-genre",
+    pattern: @"Movies/{genre:regex(^[\p{{L}}\p{{N}}-]{{1,60}}$)}",
+    defaults: new { controller = "Movies", action = "Index" });
+
 
 app.Run();

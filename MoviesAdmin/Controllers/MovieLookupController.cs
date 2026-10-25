@@ -31,6 +31,7 @@ namespace MoviesAdmin.Controllers
 
         private readonly IEnumerable<IMovieLookupProvider> _providers;
         private readonly IGenreRepository _genreRepository;
+        private readonly IRepository<AudienceRating> _audienceRatingRepository;
         private readonly IDirectorRepository _directorRepository;
         private readonly IStudioRepository _studioRepository;
         private readonly ILogger<MovieLookupController> _logger;
@@ -38,12 +39,14 @@ namespace MoviesAdmin.Controllers
         public MovieLookupController(
             IEnumerable<IMovieLookupProvider> providers,
             IGenreRepository genreRepository,
+            IRepository<AudienceRating> audienceRatingRepository,
             IDirectorRepository directorRepository,
             IStudioRepository studioRepository,
             ILogger<MovieLookupController> logger)
         {
             _providers = providers;
             _genreRepository = genreRepository;
+            _audienceRatingRepository = audienceRatingRepository;
             _directorRepository = directorRepository;
             _studioRepository = studioRepository;
             _logger = logger;
@@ -122,6 +125,13 @@ namespace MoviesAdmin.Controllers
                 .Select(name => (name, genre: genres.FirstOrDefault(g => string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase))))
                 .ToList();
 
+            // Matched by name, e.g. "PG-13" from TMDB/OMDb to the AudienceRating row named "PG-13".
+            var certification = details.Certification?.Trim();
+            var audienceRating = string.IsNullOrEmpty(certification)
+                ? null
+                : (await _audienceRatingRepository.GetAllAsync())
+                    .FirstOrDefault(r => string.Equals(r.Name, certification, StringComparison.OrdinalIgnoreCase));
+
             var director = details.DirectorName == null ? null : await _directorRepository.GetByNameAsync(details.DirectorName);
             var studio = details.StudioName == null ? null : await _studioRepository.GetByNameAsync(details.StudioName);
 
@@ -134,11 +144,12 @@ namespace MoviesAdmin.Controllers
                 releaseDate = details.ReleaseDate?.ToString("yyyy-MM-dd"),
                 runtimeHours = details.RuntimeMinutes / 60,
                 runtimeMinutes = details.RuntimeMinutes % 60,
-                contentRating = ParseCertification(details.Certification)?.ToString(),
+                audienceRatingId = audienceRating?.Id,
                 certification = details.Certification,
                 posterUrl = details.PosterUrl,
                 trailerUrl = details.TrailerUrl,
-                genreIds = matchedGenres.Where(m => m.genre != null).Select(m => m.genre!.Id).Distinct(),
+                // A movie has one genre: the first one the source lists that also exists here.
+                genreId = matchedGenres.FirstOrDefault(m => m.genre != null).genre?.Id,
                 directorId = director?.Id,
                 studioId = studio?.Id,
                 unmatched = new
@@ -150,15 +161,5 @@ namespace MoviesAdmin.Controllers
                 ratings = details.Ratings
             };
         }
-
-        private static ContentRating? ParseCertification(string? certification) => certification?.Trim().ToUpperInvariant() switch
-        {
-            "G" => ContentRating.G,
-            "PG" => ContentRating.PG,
-            "PG-13" => ContentRating.PG13,
-            "R" => ContentRating.R,
-            "NC-17" => ContentRating.NC17,
-            _ => null
-        };
     }
 }

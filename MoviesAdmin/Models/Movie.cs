@@ -28,10 +28,21 @@ namespace MoviesAdmin.Models
         [Range(1, 960, ErrorMessage = "Runtime must be between {1} and {2} minutes.")]
         public int? RuntimeMinutes { get; set; }
 
-        // Audience rating such as PG-13 (see ContentRating.cs). Nullable for movies added before
-        // the field existed; the Create/Edit form requires it.
-        [EnumDataType(typeof(ContentRating), ErrorMessage = "Content rating must be G, PG, PG-13, R, or NC-17.")]
-        public ContentRating? ContentRating { get; set; }
+        // One-to-many: a movie belongs to one genre (see Genre.cs).
+        // Foreign key to this movie's genre.
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a genre.")]
+        [Display(Name = "Genre")]
+        public int GenreId { get; set; }
+        // Navigation to the genre entity itself.
+        public Genre? Genre { get; set; }
+
+        // One-to-many: a movie belongs to one audience rating such as PG-13 (see AudienceRating.cs).
+        // Foreign key to this movie's audience rating.
+        [Range(1, int.MaxValue, ErrorMessage = "Choose an audience rating.")]
+        [Display(Name = "Audience Rating")]
+        public int AudienceRatingId { get; set; }
+        // Navigation to the audience rating entity itself.
+        public AudienceRating? AudienceRating { get; set; }
 
         // Poster image sourced from an external movie API/site, stored as a plain link rather
         // than downloaded. Distinct from PosterImagePath (see below); a movie may have either,
@@ -63,9 +74,6 @@ namespace MoviesAdmin.Models
 
         // One-to-one; see Trailer.cs. Nullable because not every movie has a trailer recorded.
         public Trailer? Trailer { get; set; }
-
-        // This movie's genre assignments (many-to-many via the MovieGenre join entity).
-        public ICollection<MovieGenre> MovieGenres { get; set; } = new List<MovieGenre>();
 
         // User-submitted reviews/ratings for this movie.
         public ICollection<Review> Reviews { get; set; } = new List<Review>();

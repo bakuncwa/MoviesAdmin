@@ -22,7 +22,7 @@
 | Requirement | How it's met |
 | --- | --- |
 | CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
-| Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, genres (many-to-many via `MovieGenre`, 8 seeded genres), `ContentRating` (G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
+| Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, one `Genre` (`GenreId`, 8 seeded genres), one `AudienceRating` (`AudienceRatingId`, seeded G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
 | Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) in an admin records table, with "Add Movie" beside the search bar, Edit/Delete in each row's Actions column, and the title opening the details view |
 | Good design principles and the site's brand | Reelbox Admin brand (green-to-brown film logo mark, forest-green "Admin" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
 
@@ -118,18 +118,27 @@ Troubleshooting:
 
 Seed data uses `HasData` in `ApplicationDbContext`, so every value must be a constant. A dynamic value such as `Guid.NewGuid()` or `DateTime.Now` changes the model on every build and makes `database update` fail with `PendingModelChangesWarning`.
 
+**Before applying `GenreAudienceRatingOneToMany` to an existing database**, empty the Movies table. Its rows would otherwise get `GenreId`/`AudienceRatingId` = 0 and fail the new foreign keys. A fresh database doesn't need this (the seeded *Pride & Prejudice* row gets a genre and rating in the same migration). `TRUNCATE TABLE` isn't allowed on a table other tables reference, so use `DELETE`, which also removes the movies' trailers and reviews by cascade:
+
+```bash
+docker exec mssql_inet2005_701 sh -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d MoviesAdmin -Q "DELETE FROM Movies"'
+dotnet ef database update --project MoviesAdmin
+```
+
 ## Code First / Database First
 
 - **Approach:** Code First — models drive the schema via EF Core migrations
-- **Schema:** Six migrations, all applied to the Docker SQL Server database:
+- **Schema:** Seven migrations, all applied to the Docker SQL Server database:
   1. `InitialMoviesReviewsSchema` — ASP.NET Core Identity tables plus `Movie`, `Genre`, `MovieGenre` (many-to-many join), and `Review`, with Fluent API config for cascade/restrict deletes and a unique index on genre name.
   2. `AddMoviePosterImagePath` — adds `Movie.PosterImagePath` for an admin-uploaded poster image (kept separate from `PosterUrl`, which is reserved for posters sourced from an external movie API).
   3. `AddDirectorStudioTrailer` — adds the `Director` and `Studio` entities (each one-to-many with `Movie`, `Restrict` delete so removing one doesn't silently orphan its movies) and the `Trailer` entity (one-to-one with `Movie`, `Cascade` delete, stores just the admin-entered YouTube URL).
   4. `AddIamRoles` — seeds the `Admin` and `Viewer` roles (fixed Ids and `ConcurrencyStamp`s so the seed is deterministic).
   5. `SeedDirectorsStudios` — seeds five director/studio pairs (Joe Wright / Working Title Films, Greta Gerwig / Columbia Pictures, Christopher Nolan / Syncopy, Denis Villeneuve / Legendary Pictures, Bong Joon-ho / Barunson E&A) and a sample movie, *Pride & Prejudice* (2005), with its TMDB poster as `PosterUrl`.
   6. `SeedGenresContentRating` — adds `Movie.ContentRating` (stored as the enum name, e.g. `PG13`), seeds eight genres (Action, Animation, Comedy, Drama, Horror, Romance, Sci-Fi, Thriller), and rates *Pride & Prejudice* PG with Drama/Romance.
-- **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`/`IDirectorRepository`/`IStudioRepository`, all registered in `Program.cs`. `Trailer` has no queries beyond plain CRUD, so it resolves through the generic `IRepository<Trailer>` registration instead of a dedicated pair.
-- **Authentication (switched off):** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Reviews links with auth-aware login/logout controls
+  7. `GenreAudienceRatingOneToMany` (Check-in 6) — replaces the `MovieGenre` many-to-many join and the `ContentRating` enum column with two one-to-many relationships: a genre has many movies and a movie belongs to one genre (`Movie.GenreId`), and an audience rating has many movies and a movie belongs to one audience rating (`Movie.AudienceRatingId`). Both FKs are required with `Restrict` delete. Adds the `AudienceRatings` table (unique `Name`) seeded with G, PG, PG-13, R, and NC-17, and sets *Pride & Prejudice* to Romance / PG. Existing movie rows have no valid genre or rating, so the Movies table has to be emptied before applying it (see below).
+- **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`/`IDirectorRepository`/`IStudioRepository`, all registered in `Program.cs`. `Trailer` and `AudienceRating` have no queries beyond plain CRUD, so they resolve through the generic `IRepository<T>` registration instead of dedicated pairs.
+- **Genres and Audience Ratings pages:** `GenresController` and `AudienceRatingsController` with their `Views/Genres` and `Views/AudienceRatings` CRUD views were scaffolded with `dotnet aspnet-codegenerator` (local tool in `dotnet-tools.json`). The Index pages show how many movies use each genre/rating, Details lists those movies, and Delete is refused while any movie still uses it.
+- **Authentication (switched off):** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Ratings/Reviews links with auth-aware login/logout controls
 
 ## IAM (Identity/Access Management)
 
@@ -220,8 +229,8 @@ Nothing secret lives in `appsettings*.json` or git. `.env` (git-ignored; templat
 
 - **Annotations with messages:** every input rule on the form and entity models (`[Required]`, `[StringLength]` with min/max, `[Range]`, `[RegularExpression]`, `[EnumDataType]`) has its own message, e.g. "Title must be between 1 and 200 characters." or "Minutes must be between 0 and 59."
 - **Custom attributes** (`Validation/`): `[ReleaseDate]` (between 14 Oct 1888 and five years from today) and `[PosterFile]` (image type and ≤5 MB). Both validate on the server and emit `data-val-*` rules for the browser.
-- **Nullable vs. non-nullable:** form inputs that can be blank in the browser are nullable and marked `[Required]` where needed (e.g. `ReleaseDate`, `ContentRating`), so a blank field gets the attribute's message instead of a type error. MVC's own binding errors (letters in a number box, a non-existent enum value) are reworded in `Program.cs` (`ModelBindingMessageProvider`).
-- **Warnings in the UI:** the AJAX-loaded form is parsed by jquery-validation-unobtrusive (`wwwroot/js/validation.js` adds the custom rules and Unicode-aware regexes), so invalid fields get a red border and a ⚠ message as you type. Submitting with errors shows a "Some fields need attention" banner. The server re-checks everything (including that the director, studio, and genre ids exist) and re-renders the same warnings with HTTP 422.
+- **Nullable vs. non-nullable:** form inputs that can be blank in the browser are nullable and marked `[Required]` where needed (e.g. `ReleaseDate`, `GenreId`, `AudienceRatingId`), so a blank field gets the attribute's message instead of a type error. MVC's own binding errors (letters in a number box, a non-existent enum value) are reworded in `Program.cs` (`ModelBindingMessageProvider`).
+- **Warnings in the UI:** the AJAX-loaded form is parsed by jquery-validation-unobtrusive (`wwwroot/js/validation.js` adds the custom rules and Unicode-aware regexes), so invalid fields get a red border and a ⚠ message as you type. Submitting with errors shows a "Some fields need attention" banner. The server re-checks everything (including that the director, studio, genre, and audience rating ids exist) and re-renders the same warnings with HTTP 422.
 
 ## Director and Studio pickers
 
@@ -254,13 +263,12 @@ The site uses an earth-tone palette (forest green, warm white, and brown, with t
 ## Suggested Future Data Models
 
 `Director`, `Studio`, and `Trailer` (below) have since been implemented. Beyond the current
-`Movie` / `Genre` / `MovieGenre` / `Review` / `ApplicationUser` / `Director` / `Studio` / `Trailer`
+`Movie` / `Genre` / `AudienceRating` / `Review` / `ApplicationUser` / `Director` / `Studio` / `Trailer`
 schema, these are natural next additions as the Rotten-Tomatoes-style feature set grows:
 
 | Model | Purpose | Relationship |
 | --- | --- | --- |
 | `Actor` | Cast member profile (name, bio, photo) | Many-to-many with `Movie` via a `MovieActor` join (with a `Role`/character-name field on the join) |
-| `ContentRating` | MPAA-style rating (G, PG, PG-13, R, etc.) | One-to-many with `Movie` |
 | `Tag` | Free-form keywords (e.g. "based on a true story") | Many-to-many with `Movie` via a `MovieTag` join |
 | `Watchlist` / `WatchlistItem` | Per-user "want to watch" list | `Watchlist` one-to-one with `ApplicationUser`; `WatchlistItem` many-to-one with `Watchlist` and `Movie` |
 | `FavoriteMovie` | Per-user favorites/likes | Join between `ApplicationUser` and `Movie` |

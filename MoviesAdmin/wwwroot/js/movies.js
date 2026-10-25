@@ -391,25 +391,20 @@
             fill('RuntimeHours', movie.runtimeHours, 'runtime');
             fill('RuntimeMinutesPart', movie.runtimeMinutes, 'runtime');
         }
-        fill('ContentRating', movie.contentRating, 'rating');
+        fill('AudienceRatingId', movie.audienceRatingId, 'rating');
         fill('PosterUrl', movie.posterUrl, 'poster');
         fill('TrailerUrl', movie.trailerUrl, 'trailer');
         fill('DirectorId', movie.directorId, 'director');
         fill('StudioId', movie.studioId, 'studio');
 
-        const genreBoxes = form.querySelectorAll('input[name="SelectedGenreIds"]');
-        const anyGenreChecked = Array.from(genreBoxes).some(box => box.checked);
-        if (movie.genreIds.length > 0 && !(onlyEmpty && anyGenreChecked)) {
-            genreBoxes.forEach(box => { box.checked = movie.genreIds.includes(Number(box.value)); });
-            filled.push('genres');
-        }
+        fill('GenreId', movie.genreId, 'genre');
 
         updatePosterPreview(form);
 
         // Summary: what was filled, review scores from the source, and anything that didn't map.
         const notes = [];
-        if (movie.certification && !movie.contentRating) {
-            notes.push(`Rated "${escapeHtml(movie.certification)}" there, which isn't one of G/PG/PG-13/R/NC-17.`);
+        if (movie.certification && !movie.audienceRatingId) {
+            notes.push(`Rated "${escapeHtml(movie.certification)}" there, which isn't one of the audience ratings here.`);
         }
         const addButton = (kind, name) =>
             ` <button type="button" class="btn btn-link btn-sm p-0 align-baseline lookup-add-credit" data-kind="${kind}" data-name="${escapeHtml(name)}">Add it</button>`;
@@ -452,7 +447,7 @@
 
     // --- Async search/filter/sort + refreshing the records table -------------------------------
 
-    // Non-empty toolbar values as query parameters (q, genreId, year, rating, sort), matching
+    // Non-empty toolbar values as query parameters (q, genreId, year, ratingId, sort), matching
     // MovieCatalogQuery on the server.
     function catalogParams() {
         const params = new URLSearchParams();
@@ -472,7 +467,11 @@
             searchInput?.setCustomValidity('');
             catalog.innerHTML = await response.text();
             // Keep the URL in step with the toolbar so a reload or shared link shows the same view.
-            history.replaceState(null, '', params.size ? `/Movies?${params}` : '/Movies');
+            // The genre goes in the path by name (/Movies/drama) instead of as ?genreId=3.
+            const slug = queryForm?.elements.genreId?.selectedOptions[0]?.dataset.slug;
+            const path = slug ? `/Movies/${slug}` : '/Movies';
+            params.delete('genreId');
+            history.replaceState(null, '', params.size ? `${path}?${params}` : path);
             return;
         }
 

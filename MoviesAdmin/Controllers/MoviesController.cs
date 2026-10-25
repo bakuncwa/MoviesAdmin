@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.MovieLookup;
@@ -17,6 +18,7 @@ namespace MoviesAdmin.Controllers
     //
     // Each partial lives in Views/Movies/Partials/ under the name of the action that renders it:
     //   GET  Movies              -> Index.cshtml (+ Partials/_Index)
+    //   GET  Movies/drama        -> Index.cshtml, filtered to that genre ("movies-genre" route)
     //   GET  Movies/Search       -> Partials/_Index      (async refresh of the records table)
     //   GET  Movies/Create       -> Partials/_Create     POST Movies/Create
     //   GET  Movies/Edit/5       -> Partials/_Edit       POST Movies/Edit/5
@@ -31,6 +33,8 @@ namespace MoviesAdmin.Controllers
     {
         private readonly IMovieRepository _movieRepository;
         private readonly IGenreRepository _genreRepository;
+        // AudienceRating is plain CRUD too, so it resolves through the generic IRepository<T>.
+        private readonly IRepository<AudienceRating> _audienceRatingRepository;
         private readonly IDirectorRepository _directorRepository;
         private readonly IStudioRepository _studioRepository;
         // Trailer has no queries beyond plain CRUD, so it's resolved through the generic
@@ -42,6 +46,7 @@ namespace MoviesAdmin.Controllers
         public MoviesController(
             IMovieRepository movieRepository,
             IGenreRepository genreRepository,
+            IRepository<AudienceRating> audienceRatingRepository,
             IDirectorRepository directorRepository,
             IStudioRepository studioRepository,
             IRepository<Trailer> trailerRepository,
@@ -50,6 +55,7 @@ namespace MoviesAdmin.Controllers
         {
             _movieRepository = movieRepository;
             _genreRepository = genreRepository;
+            _audienceRatingRepository = audienceRatingRepository;
             _directorRepository = directorRepository;
             _studioRepository = studioRepository;
             _trailerRepository = trailerRepository;
@@ -58,9 +64,13 @@ namespace MoviesAdmin.Controllers
         }
 
         // GET: Movies?q=&genreId=&year=&rating=&sort=
+        // GET: Movies/drama?q=&year=&rating=&sort=
         // Same query parameters as Search, so a filtered/sorted catalog survives a reload (movies.js
-        // mirrors the toolbar into the URL). A hand-edited, invalid query falls back to the defaults.
-        public async Task<IActionResult> Index([FromQuery] MovieCatalogQuery query)
+        // mirrors the toolbar into the URL, with the genre as its name rather than its Id).
+        // A hand-edited, invalid query falls back to the defaults; an unknown genre is a 404.
+        // The old ?genreId=3 form (still what the toolbar submits without JavaScript) is sent on
+        // to /Movies/drama with a 301, so each genre has one address and its Id never shows.
+        public async Task<IActionResult> Index([FromQuery] MovieCatalogQuery query, [FromRoute] string? genre)
         {
             if (!ModelState.IsValid)
             {
@@ -68,6 +78,37 @@ namespace MoviesAdmin.Controllers
             }
 
             var genres = await _genreRepository.GetAllAsync();
+
+            if (!string.IsNullOrEmpty(genre))
+            {
+                var match = genres.FirstOrDefault(g => MovieDisplayFormat.Slug(g.Name) == genre.ToLowerInvariant());
+                if (match == null)
+                {
+                    return NotFound();
+                }
+
+                query.GenreId = match.Id;
+                ViewBag.GenreName = match.Name;
+            }
+            else if (query.GenreId.HasValue)
+            {
+                var match = genres.FirstOrDefault(g => g.Id == query.GenreId.Value);
+                if (match != null)
+                {
+                    // Keep the rest of the query string (q, year, ratingId, sort) as it was.
+                    var values = new RouteValueDictionary { ["genre"] = MovieDisplayFormat.Slug(match.Name) };
+                    foreach (var (key, value) in Request.Query)
+                    {
+                        if (!key.Equals("genreId", StringComparison.OrdinalIgnoreCase) && !key.Equals("genre", StringComparison.OrdinalIgnoreCase))
+                        {
+                            values[key] = value.ToString();
+                        }
+                    }
+
+                    return RedirectToRoutePermanent("movies-genre", values);
+                }
+            }
+            var ratings = await _audienceRatingRepository.GetAllAsync();
             var model = new MovieCatalogViewModel
             {
                 Query = query,
@@ -75,6 +116,10 @@ namespace MoviesAdmin.Controllers
                 GenreOptions = genres
                     .OrderBy(g => g.Name)
                     .Select(g => new NamedOptionViewModel { Id = g.Id, Name = g.Name })
+                    .ToList(),
+                RatingOptions = ratings
+                    .OrderBy(r => r.Id)
+                    .Select(r => new NamedOptionViewModel { Id = r.Id, Name = r.Name })
                     .ToList(),
                 YearOptions = await _movieRepository.GetReleaseYearsAsync()
             };
@@ -100,7 +145,7 @@ namespace MoviesAdmin.Controllers
 
         private async Task<List<MovieListItemViewModel>> SearchCatalogAsync(MovieCatalogQuery query)
         {
-            var movies = await _movieRepository.SearchAsync(query.Q?.Trim(), query.GenreId, query.Year, query.Rating, query.Sort);
+            var movies = await _movieRepository.SearchAsync(query.Q?.Trim(), query.GenreId, query.Year, query.RatingId, query.Sort);
             return movies.Select(MovieListItemViewModel.FromEntity).ToList();
         }
 
@@ -139,7 +184,8 @@ namespace MoviesAdmin.Controllers
                 Synopsis = model.Synopsis,
                 ReleaseDate = model.ReleaseDate!.Value,
                 RuntimeMinutes = model.TotalRuntimeMinutes,
-                ContentRating = model.ContentRating,
+                GenreId = model.GenreId!.Value,
+                AudienceRatingId = model.AudienceRatingId!.Value,
                 PosterUrl = model.PosterUrl,
                 DirectorId = model.DirectorId,
                 StudioId = model.StudioId
@@ -151,8 +197,6 @@ namespace MoviesAdmin.Controllers
                 // image URL in the movie record
                 movie.PosterImagePath = await UploadPosterAsync(ImageUpload);
             }
-
-            AssignGenres(movie, model.SelectedGenreIds);
 
             if (!string.IsNullOrWhiteSpace(model.TrailerUrl))
             {
@@ -183,13 +227,13 @@ namespace MoviesAdmin.Controllers
                 Title = movie.Title,
                 Synopsis = movie.Synopsis,
                 ReleaseDate = movie.ReleaseDate,
-                ContentRating = movie.ContentRating,
+                GenreId = movie.GenreId,
+                AudienceRatingId = movie.AudienceRatingId,
                 PosterUrl = movie.PosterUrl,
                 PosterImagePath = movie.PosterImagePath,
                 TrailerUrl = movie.Trailer?.YouTubeUrl,
                 DirectorId = movie.DirectorId,
-                StudioId = movie.StudioId,
-                SelectedGenreIds = movie.MovieGenres.Select(mg => mg.GenreId).ToList()
+                StudioId = movie.StudioId
             };
             model.SetRuntime(movie.RuntimeMinutes);
             await PopulateViewBagAsync(model);
@@ -228,7 +272,8 @@ namespace MoviesAdmin.Controllers
             movie.Synopsis = model.Synopsis;
             movie.ReleaseDate = model.ReleaseDate!.Value;
             movie.RuntimeMinutes = model.TotalRuntimeMinutes;
-            movie.ContentRating = model.ContentRating;
+            movie.GenreId = model.GenreId!.Value;
+            movie.AudienceRatingId = model.AudienceRatingId!.Value;
             movie.PosterUrl = model.PosterUrl;
             movie.DirectorId = model.DirectorId;
             movie.StudioId = model.StudioId;
@@ -240,14 +285,6 @@ namespace MoviesAdmin.Controllers
                 movie.PosterImagePath = await UploadPosterAsync(ImageUpload);
                 await _posterStorage.DeleteAsync(oldPosterImagePath);
             }
-
-            // Modeled after the standard EF Core many-to-many-via-explicit-join-entity tutorial
-            // pattern (e.g. the Contoso University CourseAssignment sample): clear + rebuild the
-            // join collection rather than diffing it entry by entry. MovieGenre is a required
-            // dependent with a composite key (no independent Id), so entries removed from this
-            // tracked collection are deleted by SaveChangesAsync, and re-added entries are inserted.
-            movie.MovieGenres.Clear();
-            AssignGenres(movie, model.SelectedGenreIds);
 
             // Trailer is one-to-one and optional: clearing the field removes it, filling an empty
             // field creates it, and editing it in place just updates the URL.
@@ -350,25 +387,18 @@ namespace MoviesAdmin.Controllers
                 ModelState.AddModelError(nameof(model.StudioId), "That studio no longer exists. Choose another from the list.");
             }
 
-            if (model.SelectedGenreIds.Count > 0)
+            if (model.GenreId.HasValue && await _genreRepository.GetByIdAsync(model.GenreId.Value) == null)
             {
-                var knownGenreIds = (await _genreRepository.GetAllAsync()).Select(g => g.Id).ToHashSet();
-                if (!model.SelectedGenreIds.All(knownGenreIds.Contains))
-                {
-                    ModelState.AddModelError(nameof(model.SelectedGenreIds), "One of the selected genres no longer exists. Reload the form and try again.");
-                }
+                ModelState.AddModelError(nameof(model.GenreId), "That genre no longer exists. Choose another from the list.");
+            }
+
+            if (model.AudienceRatingId.HasValue && await _audienceRatingRepository.GetByIdAsync(model.AudienceRatingId.Value) == null)
+            {
+                ModelState.AddModelError(nameof(model.AudienceRatingId), "That audience rating no longer exists. Choose another from the list.");
             }
         }
 
-        private static void AssignGenres(Movie movie, IEnumerable<int> genreIds)
-        {
-            foreach (var genreId in genreIds.Distinct())
-            {
-                movie.MovieGenres.Add(new MovieGenre { MovieId = movie.Id, GenreId = genreId });
-            }
-        }
-
-        // Fills the Director/Studio dropdowns (SelectLists, used with asp-items), the Genre checkboxes
+        // Fills the Genre/Audience Rating/Director/Studio dropdowns (SelectLists, used with asp-items)
         // and the lookup sources the form needs to render, whether this is a fresh Create/Edit load
         // or a re-render after a validation failure.
         private async Task PopulateViewBagAsync(MovieFormViewModel model)
@@ -380,7 +410,10 @@ namespace MoviesAdmin.Controllers
             ViewBag.StudioId = new SelectList(studios.OrderBy(s => s.Name), "Id", "Name", model.StudioId);
 
             var genres = await _genreRepository.GetAllAsync();
-            ViewBag.Genres = genres.OrderBy(g => g.Name).ToList();
+            ViewBag.GenreId = new SelectList(genres.OrderBy(g => g.Name), "Id", "Name", model.GenreId);
+
+            var ratings = await _audienceRatingRepository.GetAllAsync();
+            ViewBag.AudienceRatingId = new SelectList(ratings.OrderBy(r => r.Id), "Id", "Name", model.AudienceRatingId);
 
             ViewBag.LookupSources = _lookupProviders
                 .Select(p => new LookupSourceViewModel { Key = p.Key, Name = p.DisplayName, IsAvailable = p.IsConfigured })

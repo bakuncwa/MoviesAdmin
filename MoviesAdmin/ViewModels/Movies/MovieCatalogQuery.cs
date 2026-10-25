@@ -5,7 +5,7 @@ using MoviesAdmin.Repositories;
 namespace MoviesAdmin.ViewModels.Movies
 {
     // The catalog's search/filter/sort state, bound from the query string by MoviesController.Index
-    // and MoviesController.Search (e.g. /Movies?q=pride&genreId=4&year=2005&rating=PG&sort=TitleAsc).
+    // and MoviesController.Search (e.g. /Movies?q=pride&genreId=4&year=2005&ratingId=2&sort=TitleAsc).
     // MovieRepository.SearchAsync turns it into one SQL query, so filtering and sorting happen in the
     // database before ToListAsync() rather than in memory.
     public class MovieCatalogQuery
@@ -25,13 +25,14 @@ namespace MoviesAdmin.ViewModels.Movies
         [Range(1888, 2100, ErrorMessage = "Year must be between {1} and {2}.")]
         public int? Year { get; set; }
 
-        [EnumDataType(typeof(ContentRating), ErrorMessage = "Choose a rating from the list.")]
-        public ContentRating? Rating { get; set; }
+        // AudienceRating.Id (e.g. 3 = PG-13).
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a rating from the list.")]
+        public int? RatingId { get; set; }
 
         [EnumDataType(typeof(MovieSortOrder), ErrorMessage = "Choose a sort order from the list.")]
         public MovieSortOrder Sort { get; set; } = MovieSortOrder.ReleaseDateDesc;
 
-        public bool HasFilters => !string.IsNullOrWhiteSpace(Q) || GenreId.HasValue || Year.HasValue || Rating.HasValue;
+        public bool HasFilters => !string.IsNullOrWhiteSpace(Q) || GenreId.HasValue || Year.HasValue || RatingId.HasValue;
 
         public string SortLabel => SortOptions.TryGetValue(Sort, out var label) ? label : SortOptions[MovieSortOrder.ReleaseDateDesc];
 
@@ -57,6 +58,8 @@ namespace MoviesAdmin.ViewModels.Movies
         public List<MovieListItemViewModel> Movies { get; set; } = new();
 
         public List<NamedOptionViewModel> GenreOptions { get; set; } = new();
+
+        public List<NamedOptionViewModel> RatingOptions { get; set; } = new();
 
         public List<int> YearOptions { get; set; } = new();
     }
