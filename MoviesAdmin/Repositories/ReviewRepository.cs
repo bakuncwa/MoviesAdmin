@@ -10,22 +10,25 @@ namespace MoviesAdmin.Repositories
         {
         }
 
-        public async Task<IEnumerable<Review>> GetByMovieIdAsync(int movieId)
-        {
-            return await Set
-                .Include(r => r.User)
-                .Where(r => r.MovieId == movieId)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Review>> GetByUserIdAsync(string userId)
+        public async Task<IEnumerable<Review>> GetByCriticAsync(string createdBy)
         {
             return await Set
                 .Include(r => r.Movie)
-                .Where(r => r.UserId == userId)
-                .OrderByDescending(r => r.CreatedAt)
+                .Where(r => r.CreatedBy == createdBy)
+                .OrderByDescending(r => r.UpdatedAt ?? r.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<Review?> GetByIdForCriticAsync(int id, string createdBy)
+        {
+            return await Set
+                .Include(r => r.Movie)
+                .FirstOrDefaultAsync(r => r.Id == id && r.CreatedBy == createdBy);
+        }
+
+        public async Task<Review?> GetByMovieForCriticAsync(int movieId, string createdBy)
+        {
+            return await Set.FirstOrDefaultAsync(r => r.MovieId == movieId && r.CreatedBy == createdBy);
         }
     }
 }

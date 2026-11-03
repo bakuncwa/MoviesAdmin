@@ -75,11 +75,15 @@ namespace MoviesAdmin.Models
         // One-to-one; see Trailer.cs. Nullable because not every movie has a trailer recorded.
         public Trailer? Trailer { get; set; }
 
-        // User-submitted reviews/ratings for this movie.
+        // Critic reviews for this movie, drafts included (see Review.IsPublished).
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+        // Only published reviews count towards the totals; drafts stay private to their critic.
+        [NotMapped]
+        public int PublishedReviewCount => Reviews.Count(r => r.IsPublished);
 
         // Rotten-Tomatoes-style aggregate; derived from Reviews rather than stored, so it can never drift.
         [NotMapped]
-        public double? AverageRating => Reviews.Count == 0 ? null : Reviews.Average(r => r.Rating);
+        public double? AverageRating => PublishedReviewCount == 0 ? null : Reviews.Where(r => r.IsPublished).Average(r => r.Rating);
     }
 }

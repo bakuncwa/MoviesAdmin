@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Profile";
+    var roleClaimType = (User.Identity as System.Security.Claims.ClaimsIdentity)?.RoleClaimType;
+    var roles = User.Claims.Where(c => c.Type == roleClaimType).Select(c => c.Value).ToList();
+}
+
+@* What Auth0 sent back about the signed-in user (id token claims). *@
+<div class="auth-stage">
+    <div class="auth-card text-center">
+        @if (User.FindFirst("picture")?.Value is string picture)
+        {
+            <img src="@picture" alt="" class="rounded-circle mb-3" width="80" height="80" />
+        }
+        <h1 class="auth-title">@User.Identity?.Name</h1>
+        <p class="auth-subtitle mb-3">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</p>
+        <dl class="text-start small mb-0">
+            <dt>Roles</dt>
+            <dd>@(roles.Count == 0 ? "None assigned" : string.Join(", ", roles))</dd>
+            <dt>User id</dt>
+            <dd><code>@User.GetUserId()</code></dd>
+        </dl>
+    </div>
+</div>

@@ -1,68 +1,61 @@
-// Login/logout is switched off for now: CRUD is open access (see Program.cs). Uncomment this file,
-// the Identity setup in Program.cs, and the [Authorize] attributes to switch it back on.
+using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-// using Microsoft.AspNetCore.Authorization;
-// using Microsoft.AspNetCore.Identity;
-// using Microsoft.AspNetCore.Mvc;
-// using MoviesAdmin.Models;
-// using MoviesAdmin.ViewModels.Account;
+namespace MoviesAdmin.Controllers
+{
+    // Sign-in/out through Auth0. There is no registration or password screen in this app: accounts
+    // and their roles (administrator, critic) are created in the Auth0 Dashboard.
+    public class AccountController : Controller
+    {
+        // GET: Account/Login?returnUrl=/Movies
+        // Hands the browser to Auth0's hosted login page; Auth0 then returns it to /callback and on
+        // to returnUrl. Any [Authorize] page does the same automatically for a signed-out visitor.
+        public async Task Login(string returnUrl = "/")
+        {
+            if (!Url.IsLocalUrl(returnUrl))
+            {
+                returnUrl = "/";
+            }
 
-// namespace MoviesAdmin.Controllers
-// {
-//     // Sign-in/out only. There is deliberately no Register action: accounts are declared in the
-//     // "SeedUsers" configuration and bound to an application role by Data/IdentitySeeder.cs.
-//     public class AccountController : Controller
-//     {
-//         private readonly SignInManager<ApplicationUser> _signInManager;
+            var authenticationProperties = new LoginAuthenticationPropertiesBuilder()
+                .WithRedirectUri(returnUrl)
+                .Build();
 
-//         public AccountController(SignInManager<ApplicationUser> signInManager)
-//         {
-//             _signInManager = signInManager;
-//         }
+            await HttpContext.ChallengeAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+        }
 
-//         [HttpGet]
-//         public IActionResult Login(string? returnUrl = null)
-//         {
-//             return View(new LoginViewModel { ReturnUrl = returnUrl });
-//         }
+        // POST: Account/Logout
+        // Clears both the Auth0 session and this app's cookie, then comes back to the home page.
+        // POST (with an antiforgery token) so another site can't sign the user out with a link.
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task Logout()
+        {
+            var authenticationProperties = new LogoutAuthenticationPropertiesBuilder()
+                .WithRedirectUri(Url.Action("Index", "Home") ?? "/")
+                .Build();
 
-//         [HttpPost]
-//         [ValidateAntiForgeryToken]
-//         public async Task<IActionResult> Login(LoginViewModel model)
-//         {
-//             if (!ModelState.IsValid)
-//             {
-//                 return View(model);
-//             }
+            await HttpContext.SignOutAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        }
 
-//             var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
-//             if (result.Succeeded)
-//             {
-//                 if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-//                 {
-//                     return Redirect(model.ReturnUrl);
-//                 }
-//                 return RedirectToAction("Index", "Home");
-//             }
+        // GET: Account/Profile
+        // Who Auth0 says the signed-in user is, and which roles came through in the token.
+        [Authorize]
+        public IActionResult Profile()
+        {
+            return View();
+        }
 
-//             ModelState.AddModelError(string.Empty, result.IsLockedOut
-//                 ? "This account has been locked out. Please try again later."
-//                 : "Invalid login attempt.");
-//             return View(model);
-//         }
-
-//         [HttpPost]
-//         [ValidateAntiForgeryToken]
-//         public async Task<IActionResult> Logout()
-//         {
-//             await _signInManager.SignOutAsync();
-//             return RedirectToAction("Index", "Home");
-//         }
-
-//         [HttpGet]
-//         public IActionResult AccessDenied()
-//         {
-//             return View();
-//         }
-//     }
-// }
+        // GET: Account/AccessDenied
+        // Where the cookie handler sends a signed-in user whose role doesn't allow the page.
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+    }
+}

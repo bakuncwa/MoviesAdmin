@@ -50,30 +50,42 @@
                     <i class="fa-solid fa-bars" aria-hidden="true"></i>
                 </button>
                 <div class="navbar-collapse collapse justify-content-between">
+                    @* Links follow the signed-in user's role: administrators manage movie data, critics
+                       browse movies and write reviews. The controllers enforce the same rules with
+                       [Authorize], so hiding a link is only a convenience, not the protection. *@
                     <ul class="navbar-nav flex-grow-1 ms-md-4">
                         <li class="nav-item">
-                            <a class="nav-link @NavActive("Home")" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
+                            <a class="nav-link @NavActive("Home")" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
-                        @* Controllers below are pending per README's "Planned" feature list; routes are wired ahead of time. *@
-                        <li class="nav-item">
-                            <a class="nav-link @NavActive("Movies")" asp-area="" asp-controller="Movies" asp-action="Index">Movies</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @NavActive("Genres")" asp-area="" asp-controller="Genres" asp-action="Index">Genres</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @NavActive("AudienceRatings")" asp-area="" asp-controller="AudienceRatings" asp-action="Index">Ratings</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @NavActive("Reviews")" asp-area="" asp-controller="Reviews" asp-action="Index">Reviews</a>
-                        </li>
+                        @if (User.IsInRole(Roles.Administrator) || User.IsInRole(Roles.Critic))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @NavActive("Movies")" asp-area="" asp-controller="Movies" asp-action="Index">Movies</a>
+                            </li>
+                        }
+                        @if (User.IsInRole(Roles.Administrator))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @NavActive("Genres")" asp-area="" asp-controller="Genres" asp-action="Index">Genres</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @NavActive("AudienceRatings")" asp-area="" asp-controller="AudienceRatings" asp-action="Index">Ratings</a>
+                            </li>
+                        }
+                        @if (User.IsInRole(Roles.Critic))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @NavActive("Reviews")" asp-area="" asp-controller="Reviews" asp-action="Index">My Reviews</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav align-items-md-center gap-md-2">
-                        @* Login/logout is switched off for now: CRUD is open access (see Program.cs).
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item d-flex align-items-center">
-                                <span class="user-chip"><i class="fa-solid fa-user-shield" aria-hidden="true"></i>@User.Identity.Name</span>
+                                <a class="user-chip text-decoration-none" asp-controller="Account" asp-action="Profile" title="Your profile">
+                                    <i class="fa-solid @(User.IsInRole(Roles.Administrator) ? "fa-user-shield" : "fa-user-pen")" aria-hidden="true"></i>@User.Identity.Name
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-flex">
@@ -84,10 +96,9 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link @NavActive("Account")" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
+                                <a class="nav-link" asp-controller="Account" asp-action="Login"><i class="fa-solid fa-right-to-bracket me-1" aria-hidden="true"></i>Log in</a>
                             </li>
                         }
-                        *@
                         <li class="nav-item">
                             @* Icons adapted from Bootstrap Icons (MIT) so no extra library needs to be vendored. *@
                             <button id="theme-toggle" type="button" class="icon-btn" aria-pressed="false" aria-label="Toggle dark mode" title="Toggle dark mode">

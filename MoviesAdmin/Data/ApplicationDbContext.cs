@@ -1,14 +1,10 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using MoviesAdmin.Models;
 
 namespace MoviesAdmin.Data
 {
-    // IdentityDbContext already brings the Users/Roles/Claims tables needed for authentication.
-    // The single-generic-argument form implicitly uses IdentityRole/string keys, i.e. it is
-    // equivalent to IdentityDbContext<ApplicationUser, IdentityRole, string>.
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    // Plain DbContext: user accounts and roles live in Auth0, so there are no Identity tables here.
+    public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -56,11 +52,10 @@ namespace MoviesAdmin.Data
                 .HasForeignKey(r => r.MovieId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // One review per movie per critic.
             builder.Entity<Review>()
-                .HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasIndex(r => new { r.MovieId, r.CreatedBy })
+                .IsUnique();
 
             builder.Entity<Director>()
                 .HasIndex(d => d.Name)
@@ -153,32 +148,6 @@ namespace MoviesAdmin.Data
                 new AudienceRating { Id = 3, Name = "PG-13", Description = "Parents Strongly Cautioned" },
                 new AudienceRating { Id = 4, Name = "R", Description = "Restricted" },
                 new AudienceRating { Id = 5, Name = "NC-17", Description = "Adults Only" }
-            );
-
-            // --- IAM (Identity/Access Management) setup -----------------------------------
-            // Baseline RBAC roles for the Admin viewpoint described in the README: "Admin" can
-            // manage Movies/Genres/Reviews, "Viewer" is a signed-in, read-only account. HasData
-            // needs fixed keys so migrations can diff it deterministically across environments.
-            //
-            // Applied by the AddIamRoles migration. The first registered account is assigned
-            // "Admin" (see AccountController.Register); later accounts get "Viewer".
-            builder.Entity<IdentityRole>().HasData(
-                new IdentityRole
-                {
-                    Id = "9a8e6b1a-9e3b-4b3a-8a2e-000000000001",
-                    Name = "Admin",
-                    NormalizedName = "ADMIN",
-                    // IdentityRole defaults this to Guid.NewGuid(), which makes HasData
-                    // non-deterministic (PendingModelChangesWarning on every update), so pin it.
-                    ConcurrencyStamp = "9a8e6b1a-9e3b-4b3a-8a2e-100000000001"
-                },
-                new IdentityRole
-                {
-                    Id = "9a8e6b1a-9e3b-4b3a-8a2e-000000000002",
-                    Name = "Viewer",
-                    NormalizedName = "VIEWER",
-                    ConcurrencyStamp = "9a8e6b1a-9e3b-4b3a-8a2e-100000000002"
-                }
             );
         }
     }

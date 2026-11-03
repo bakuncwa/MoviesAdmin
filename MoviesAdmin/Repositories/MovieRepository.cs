@@ -18,7 +18,7 @@ namespace MoviesAdmin.Repositories
             return await Set
                 .Include(m => m.Genre)
                 .Include(m => m.AudienceRating)
-                .Include(m => m.Reviews).ThenInclude(r => r.User)
+                .Include(m => m.Reviews)
                 .Include(m => m.Director)
                 .Include(m => m.Studio)
                 .Include(m => m.Trailer)
@@ -59,7 +59,7 @@ namespace MoviesAdmin.Repositories
                 MovieSortOrder.ReleaseDateDesc => query.OrderByDescending(m => m.ReleaseDate).ThenBy(m => m.Title),
                 MovieSortOrder.ReleaseDateAsc => query.OrderBy(m => m.ReleaseDate).ThenBy(m => m.Title),
                 MovieSortOrder.TitleDesc => query.OrderByDescending(m => m.Title),
-                MovieSortOrder.RatingDesc => query.OrderByDescending(m => m.Reviews.Average(r => (double?)r.Rating) ?? 0).ThenBy(m => m.Title),
+                MovieSortOrder.RatingDesc => query.OrderByDescending(m => m.Reviews.Where(r => r.IsPublished).Average(r => (double?)r.Rating) ?? 0).ThenBy(m => m.Title),
                 // Unknown runtimes sort last in both directions.
                 MovieSortOrder.RuntimeDesc => query.OrderBy(m => m.RuntimeMinutes == null).ThenByDescending(m => m.RuntimeMinutes).ThenBy(m => m.Title),
                 MovieSortOrder.RuntimeAsc => query.OrderBy(m => m.RuntimeMinutes == null).ThenBy(m => m.RuntimeMinutes).ThenBy(m => m.Title),

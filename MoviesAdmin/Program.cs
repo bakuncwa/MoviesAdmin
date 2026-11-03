@@ -1,4 +1,5 @@
-// using Microsoft.AspNetCore.Identity;
+using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using MoviesAdmin.Data;
 using MoviesAdmin.Models;
@@ -35,34 +36,37 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// --- Login/logout (switched off) ----------------------------------------------------------------
-// CRUD is open access for now: Identity sign-in, the cookie paths, and the "RequireAdmin" policy are
-// commented out, along with [Authorize] on the Movies controllers and AccountController itself.
-// ApplicationDbContext still derives from IdentityDbContext, so the schema and migrations are
-// unchanged and this can be switched back on by uncommenting.
-// builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-//     {
-//         options.Password.RequiredLength = 6;
-//         options.Password.RequireNonAlphanumeric = false;
-//         options.SignIn.RequireConfirmedAccount = false;
-//     })
-//     .AddEntityFrameworkStores<ApplicationDbContext>()
-//     .AddDefaultTokenProviders();
+// --- Auth0 login ------------------------------------------------------------------------------
+// Auth0 stores the user accounts and roles. Signing in redirects to Auth0's login page, which sends
+// the user back to /callback with an id token; the SDK turns that into the auth cookie. Domain and
+// ClientId come from user secrets in Development (written from .env by scripts/setup-secrets.sh)
+// and from Auth0__Domain / Auth0__ClientId environment variables elsewhere.
+var auth0Domain = builder.Configuration["Auth0:Domain"];
+var auth0ClientId = builder.Configuration["Auth0:ClientId"];
+if (string.IsNullOrWhiteSpace(auth0Domain) || string.IsNullOrWhiteSpace(auth0ClientId))
+{
+    throw new InvalidOperationException(
+        "Auth0:Domain and Auth0:ClientId are not configured. Fill in AUTH0_DOMAIN and AUTH0_CLIENT_ID in .env " +
+        "(Auth0 Dashboard > Applications > your app > Settings), then run ./scripts/setup-secrets.sh.");
+}
 
-// builder.Services.ConfigureApplicationCookie(options =>
-// {
-//     options.LoginPath = "/Account/Login";
-//     options.AccessDeniedPath = "/Account/AccessDenied";
-// });
+builder.Services.AddAuth0WebAppAuthentication(options =>
+{
+    options.Domain = auth0Domain;
+    options.ClientId = auth0ClientId;
+});
 
-// // --- IAM (Identity/Access Management) setup ------------------------------------------------
-// // Movie management (MoviesController) is restricted to the "Admin" role, matching the README's
-// // "Admin RBAC viewpoint" description. The role is seeded via HasData in ApplicationDbContext
-// // (AddIamRoles migration); accounts holding it come from the "SeedUsers" config (IdentitySeeder).
-// builder.Services.AddAuthorization(options =>
-// {
-//     options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
-// });
+// Auth0 leaves roles out of the id token by default. The "Add Roles to Token" post-login Action
+// adds them as a custom claim named "<namespace>/roles" (Auth0:RolesClaim in appsettings.json must
+// match the Action's namespace); telling the OIDC handler that's the role claim is what makes
+// [Authorize(Roles = ...)] and User.IsInRole work. Only these two settings are changed, so the
+// issuer/audience checks the Auth0 SDK set up stay in place.
+builder.Services.Configure<OpenIdConnectOptions>(Auth0Constants.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters.NameClaimType = "name";
+    options.TokenValidationParameters.RoleClaimType = builder.Configuration["Auth0:RolesClaim"]
+        ?? throw new InvalidOperationException("Auth0:RolesClaim is not configured (see appsettings.json).");
+});
 
 // Generic repository registration: any IRepository<T> resolves to Repository<T>
 // for entities that don't need queries beyond plain CRUD.
@@ -134,9 +138,6 @@ catch (FormatException ex)
         "./scripts/setup-secrets.sh.", ex);
 }
 
-// Login/logout is switched off, so the configured "SeedUsers" accounts aren't seeded.
-// await IdentitySeeder.SeedAsync(app.Services);
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -148,8 +149,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapStaticAssets();
 
