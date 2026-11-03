@@ -59,6 +59,10 @@
                         <dt>Studio</dt>
                         <dd>@(Model.StudioName ?? "—")</dd>
                     </div>
+                    <div>
+                        <dt>Published reviews</dt>
+                        <dd>@Model.ReviewCount</dd>
+                    </div>
                     @if (!Model.AverageRating.HasValue)
                     {
                         <div>
@@ -69,7 +73,14 @@
                 </dl>
 
                 <div class="d-flex gap-2 mt-4">
-                    <button type="button" class="btn btn-glass movie-edit-btn" data-id="@Model.Id"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</button>
+                    @if (User.IsInRole(Roles.Administrator))
+                    {
+                        <button type="button" class="btn btn-glass movie-edit-btn" data-id="@Model.Id"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</button>
+                    }
+                    else
+                    {
+                        <a class="btn btn-glass" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@Model.Id"><i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review this movie</a>
+                    }
                     <button type="button" class="btn btn-link text-body-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>

@@ -14,6 +14,7 @@
 else
 {
     var count = Model.Movies.Count;
+    var isAdmin = User.IsInRole(Roles.Administrator);
     <p class="catalog-count">@count @(count == 1 ? "record" : "records")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
 
     <div class="table-responsive catalog-list-view">
@@ -67,24 +68,34 @@ else
                             }
                             else
                             {
-                                <span class="text-body-secondary">No reviews</span>
-                            }
-                        </td>
-                        <td class="text-end movie-actions-cell">
-                            <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
-                                <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
-                                    <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
-                                </button>
-                                @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
-                                <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
-                                        data-id="@movie.Id"
-                                        data-title="@movie.Title"
-                                        data-release="@releaseText"
-                                        data-runtime="@movie.RuntimeText"
-                                        data-rating="@movie.AudienceRatingName"
-                                        data-genres="@genresText">
-                                    <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
-                                </button>
+                                    <span class="text-body-secondary">No reviews</span>
+                                }
+                            </td>
+                            <td class="text-end movie-actions-cell">
+                                <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
+                                    @if (!isAdmin)
+                                    {
+                                        @* Critics: write a review (or open theirs, if they already have one). *@
+                                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
+                                            <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review
+                                        </a>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
+                                        <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
+                                    </button>
+                                    @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
+                                    <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
+                                            data-id="@movie.Id"
+                                            data-title="@movie.Title"
+                                            data-release="@releaseText"
+                                            data-runtime="@movie.RuntimeText"
+                                            data-rating="@movie.AudienceRatingName"
+                                            data-genres="@genresText">
+                                        <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
+                                    </button>
+                                }
                             </div>
                         </td>
                     </tr>

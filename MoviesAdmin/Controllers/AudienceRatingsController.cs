@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MoviesAdmin.Data;
@@ -6,6 +7,8 @@ using MoviesAdmin.Models;
 namespace MoviesAdmin.Controllers
 {
     // Scaffolded CRUD for AudienceRating (one-to-many with Movie: an audience rating can have many movies, and a movie belongs to one audience rating).
+    // Movie reference data, so administrators only.
+    [Authorize(Roles = Roles.Administrator)]
     public class AudienceRatingsController : Controller
     {
         private readonly ApplicationDbContext _context;

@@ -16,10 +16,19 @@
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <input type="search" id="movie-search" name="q" value="@query.Q" placeholder="Search movies by title..." autocomplete="off" maxlength="200" />
     </div>
-    @* Opens GET Movies/Create in the shared modal. *@
-    <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
-        <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie
-    </button>
+    @if (User.IsInRole(Roles.Administrator))
+    {
+        @* Opens GET Movies/Create in the shared modal. *@
+        <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
+            <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie
+        </button>
+    }
+    else
+    {
+        <a class="btn btn-primary text-nowrap" asp-controller="Reviews" asp-action="Index">
+            <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>My Reviews
+        </a>
+    }
     <div class="catalog-filters">
         <label for="filter-genre" class="visually-hidden">Genre</label>
         <select id="filter-genre" name="genreId" class="form-select form-select-sm toolbar-select">

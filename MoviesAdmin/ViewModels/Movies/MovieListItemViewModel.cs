@@ -48,8 +48,8 @@ namespace MoviesAdmin.ViewModels.Movies
                 AudienceRatingName = movie.AudienceRating?.Name ?? "Not Rated",
                 DisplayImageUrl = MoviePosterResolver.Resolve(movie),
                 GenreName = movie.Genre?.Name ?? string.Empty,
-                AverageRating = movie.Reviews.Count == 0 ? null : movie.Reviews.Average(r => r.Rating),
-                ReviewCount = movie.Reviews.Count
+                AverageRating = movie.AverageRating,
+                ReviewCount = movie.PublishedReviewCount
             };
         }
     }

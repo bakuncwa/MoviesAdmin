@@ -1,4 +1,4 @@
-// using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -26,9 +26,10 @@ namespace MoviesAdmin.Controllers
     //   GET  Movies/Trailer/5    -> Partials/_Trailer
     //   POST Movies/Delete/5
     //
-    // IAM: login/logout is switched off for now, so CRUD is open to anyone. To restore it, uncomment
-    // this attribute along with the Identity setup in Program.cs and AccountController.
-    // [Authorize(Policy = "RequireAdmin")]
+    // Access: administrators and critics can both browse the catalog (Index/Search/Details/Trailer);
+    // Create, Edit and Delete also carry [Authorize(Roles = Roles.Administrator)], so only
+    // administrators change movie data. Both attributes must pass, so critics get Access Denied.
+    [Authorize(Roles = Roles.Any)]
     public class MoviesController : Controller
     {
         private readonly IMovieRepository _movieRepository;
@@ -150,6 +151,7 @@ namespace MoviesAdmin.Controllers
         }
 
         // GET: Movies/Create
+        [Authorize(Roles = Roles.Administrator)]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -161,6 +163,7 @@ namespace MoviesAdmin.Controllers
         // POST: Movies/Create
         // The poster file is posted as its own ImageUpload parameter (the file input's name);
         // [PosterFile] checks its type and size like any other validation attribute.
+        [Authorize(Roles = Roles.Administrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(MovieFormViewModel model, [PosterFile] IFormFile? ImageUpload)
@@ -212,6 +215,7 @@ namespace MoviesAdmin.Controllers
         }
 
         // GET: Movies/Edit/5
+        [Authorize(Roles = Roles.Administrator)]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -244,6 +248,7 @@ namespace MoviesAdmin.Controllers
         // POST: Movies/Edit/5
         // PosterImagePath comes back in a hidden field; the existing poster is kept unless a new
         // ImageUpload replaces it.
+        [Authorize(Roles = Roles.Administrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, MovieFormViewModel model, [PosterFile] IFormFile? ImageUpload)
@@ -346,6 +351,7 @@ namespace MoviesAdmin.Controllers
         // 10-second "Undo" toast BEFORE ever calling this endpoint — the row is only removed
         // server-side once that countdown elapses without the user clicking Undo, so nothing is
         // destroyed during the grace period.
+        [Authorize(Roles = Roles.Administrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
