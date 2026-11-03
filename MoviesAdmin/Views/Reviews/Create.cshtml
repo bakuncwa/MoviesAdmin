@@ -1,0 +1,19 @@
+@model MoviesAdmin.ViewModels.Reviews.ReviewFormViewModel
+
+@{
+    ViewData["Title"] = "Write a Review";
+}
+
+<h1>Write a Review</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post">
+            <partial name="_ReviewForm" model="Model" />
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

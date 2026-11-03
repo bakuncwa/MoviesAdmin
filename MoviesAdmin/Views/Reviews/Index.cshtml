@@ -1,0 +1,54 @@
+@model IEnumerable<MoviesAdmin.Models.Review>
+
+@{
+    ViewData["Title"] = "My Reviews";
+}
+
+<h1>My Reviews</h1>
+
+<partial name="_Message" />
+
+<p>
+    <a asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Write a Review</a>
+</p>
+
+@if (!Model.Any())
+{
+    <div class="catalog-empty">
+        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+        <p class="mb-0">You haven't written any reviews yet.</p>
+    </div>
+}
+else
+{
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Movie</th>
+                <th>Rating</th>
+                <th>Status</th>
+                <th>Last updated</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Movie.Title</td>
+                    <td><span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@item.Rating / 5</span></td>
+                    <td><partial name="_StatusBadge" model="item" /></td>
+                    <td>@((item.PublishedAt ?? item.UpdatedAt ?? item.CreatedAt).ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</td>
+                    <td class="text-end">
+                        <a asp-action="Details" asp-route-id="@item.Id">Details</a>
+                        @if (!item.IsPublished)
+                        {
+                            <text> | </text><a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                            <text> | </text><a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

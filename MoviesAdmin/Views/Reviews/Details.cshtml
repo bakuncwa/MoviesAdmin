@@ -1,0 +1,53 @@
+@model MoviesAdmin.Models.Review
+
+@{
+    ViewData["Title"] = "Review Details";
+}
+
+<h1>Review of @Model.Movie.Title</h1>
+
+<partial name="_Message" />
+
+<div>
+    <dl class="row">
+        <dt class="col-sm-2">Status</dt>
+        <dd class="col-sm-10"><partial name="_StatusBadge" model="Model" /></dd>
+
+        <dt class="col-sm-2">Rating</dt>
+        <dd class="col-sm-10"><span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@Model.Rating / 5</span></dd>
+
+        <dt class="col-sm-2">Review</dt>
+        <dd class="col-sm-10" style="white-space: pre-line;">@Model.Text</dd>
+
+        <dt class="col-sm-2">Created</dt>
+        <dd class="col-sm-10">@Model.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+
+        @if (Model.PublishedAt.HasValue)
+        {
+            <dt class="col-sm-2">Published</dt>
+            <dd class="col-sm-10">@Model.PublishedAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+        }
+        else if (Model.UpdatedAt.HasValue)
+        {
+            <dt class="col-sm-2">Last edited</dt>
+            <dd class="col-sm-10">@Model.UpdatedAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+        }
+    </dl>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2">
+    @if (!Model.IsPublished)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-glass"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</a>
+        <form asp-action="Publish" asp-route-id="@Model.Id" method="post" class="d-inline"
+              onsubmit="return confirm('Publish this review? Once published it can no longer be edited or deleted.');">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Publish</button>
+        </form>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete</a>
+    }
+    else
+    {
+        <span class="text-body-secondary"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Published reviews can't be changed.</span>
+    }
+    <a asp-action="Index" class="btn btn-link">Back to My Reviews</a>
+</div>

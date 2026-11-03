@@ -1,0 +1,8 @@
+@* One-off confirmation set by ReviewsController through TempData["ReviewMessage"]. *@
+@if (TempData["ReviewMessage"] is string message)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="status">
+        @message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}

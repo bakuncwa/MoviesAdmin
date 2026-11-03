@@ -1,0 +1,10 @@
+@model MoviesAdmin.Models.Review
+
+@if (Model.IsPublished)
+{
+    <span class="badge text-bg-success"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Published</span>
+}
+else
+{
+    <span class="badge text-bg-secondary"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Draft</span>
+}

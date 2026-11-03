@@ -26,6 +26,21 @@
 | Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) in an admin records table, with "Add Movie" beside the search bar, Edit/Delete in each row's Actions column, and the title opening the details view |
 | Good design principles and the site's brand | Reelbox Admin brand (green-to-brown film logo mark, forest-green "Admin" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
 
+## Sprint 2 Requirements
+
+| # | Requirement | How it's met |
+| --- | --- | --- |
+| 5 | Poster uploaded for new movies, changeable for existing ones | `MoviesController` Create requires an `ImageUpload` (or a lookup poster URL); Edit replaces it and deletes the old blob (Azurite / Azure Blob Storage) |
+| 6 | Small thumbnail on Index, larger on Details | `catalog-table-thumb` in `Partials/_Index`, `details-poster` in `Partials/_Details` |
+| 7 | Critics draft and publish reviews; drafts editable/deletable, published reviews locked | `ReviewsController`: "Save draft" / "Publish" buttons; Edit, Delete and Publish refuse any review with `IsPublished = true` |
+| 8 | Rating 0–5, text at most 1000 characters | `[Range(0, 5)]` and `[StringLength(1000)]` on `Review` and `ReviewFormViewModel` (client + server validation, live character counter) |
+| 9 | Movie Details shows the number of published reviews | "Published reviews" in `Partials/_Details`; counts and averages use `Movie.PublishedReviewCount` / `AverageRating` (drafts excluded) |
+| 10 | Login required everywhere except the home page | `[Authorize]` on every controller/action except `Home/Index` (anonymous; shows app info and a Log in button) |
+| 11 | Auth0 manages accounts, roles and authentication | `Auth0.AspNetCore.Authentication` in `Program.cs`; `AccountController` Login/Logout; no users or passwords in this database |
+| 12 | Roles `administrator` and `critic` | `Roles.cs`; role claim mapped from the Auth0 post-login Action (`Auth0:RolesClaim`) |
+| 13 | Administrators CRUD movie data | `[Authorize(Roles = Roles.Administrator)]` on Movies Create/Edit/Delete, Genres, AudienceRatings, MovieLookup, MovieOptions |
+| 14 | Critics read all movies, one review per movie, only see/modify their own | `MoviesController` readable by both roles; `ReviewsController` is critic-only and every query filters on `CreatedBy = User.GetUserId()`; unique index on (`MovieId`, `CreatedBy`) |
+
 ## Technology Stack
 
 | Category | Technology | Purpose | Status |
@@ -33,10 +48,10 @@
 | Framework | ASP.NET Core MVC (.NET 10) | Web application framework | In use |
 | Programming language | C# | Application programming language | In use |
 | Data access | Entity Framework Core | Database access and persistence | In use |
-| Database | SQL Server 2022 (Developer Edition) in Docker | Relational database storage | In use — 6 migrations applied |
+| Database | SQL Server 2022 (Developer Edition) in Docker | Relational database storage | In use — 8 migrations applied |
 | Poster storage | Azure Blob Storage via Azurite in Docker (`Azure.Storage.Blobs`) | Uploaded poster images, served from a container with public read access for blobs only; works the same against a real Azure storage account, and falls back to `wwwroot/images/movies` when not configured | In use |
 | Containerization | Docker Desktop + Docker Compose (`docker-compose.yml`) | Runs the local SQL Server (persistent volume, health check) and Azurite for poster blobs (persistent volume, port 10000) | In use |
-| Authentication | ASP.NET Core Identity | Config-provisioned accounts, login/logout, role-based access | Switched off (code commented out; schema kept) |
+| Authentication | Auth0 (`Auth0.AspNetCore.Authentication`) | Hosted login, user accounts, `administrator` / `critic` roles | In use |
 | View technology | Razor Views (`.cshtml`) | Server-rendered user interface | In use |
 | Front end | HTML5 / CSS3 / JavaScript | Front-end structure, styling, and behavior | In use |
 | UI library | Bootstrap 5.3 (vendored under `wwwroot/lib/bootstrap`) | Responsive UI components, layout, and native `data-bs-theme` light/dark color modes | In use |
@@ -44,7 +59,7 @@
 | UI feedback | SweetAlert2 (vendored under `wwwroot/lib/sweetalert2`) | Delete confirmation dialogs, duplicate warnings, and the undo/success toasts on the Movies admin page | In use |
 | Searchable pickers | Tom Select 2.6 (Apache-2.0, vendored under `wwwroot/lib/tom-select`) | Director and Studio fields: type to search, or add a new entry | In use |
 | API integration | TMDB and OMDb (IMDb + Rotten Tomatoes scores) | Pre-fill the movie form: metadata, posters, trailers, and review scores | In use when API keys are configured (see [Movie lookup](#movie-lookup)); YouTube trailers embedded via `<iframe>` |
-| Secrets | .NET user secrets + git-ignored `.env` | Connection string, seed admin, and API keys kept out of `appsettings*.json` and git | In use |
+| Secrets | .NET user secrets + git-ignored `.env` | Connection string, Auth0 domain/client id, and API keys kept out of `appsettings*.json` and git | In use |
 
 ## CLI/Terminal Commands for Set-Up
 
@@ -58,13 +73,13 @@ Run commands from the repository root (`~/Desktop/MoviesAdmin`), one line at a t
 | --- | --- |
 | 1. Restore NuGet packages | `dotnet restore` |
 | 2. Restore the local `dotnet-ef` tool (pinned in `dotnet-tools.json`) | `dotnet tool restore` |
-| 3. Create your local secrets file, then edit the passwords (and optionally add API keys) | `cp .env.example .env` |
+| 3. Create your local secrets file, then edit the SA password and fill in `AUTH0_DOMAIN` / `AUTH0_CLIENT_ID` (see [IAM](#iam-identityaccess-management)) | `cp .env.example .env` |
 | 4. Copy `.env` into the app's user secrets (re-run whenever `.env` changes) | `./scripts/setup-secrets.sh` |
 | 5. Start SQL Server and Azurite in Docker (reads the same `.env`) | `docker compose up -d` |
 | 6. Wait until the status shows `(healthy)` (~30–60s on Apple Silicon) | `docker compose ps` |
 | 7. Create the database and apply all migrations | `dotnet ef database update --project MoviesAdmin` |
-| 8. Run the app at http://localhost:5126 | `dotnet run --project MoviesAdmin` |
-| 9. Sign in | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` from your `.env` |
+| 8. Run the app at https://localhost:7198 (the URL registered with Auth0) | `dotnet run --project MoviesAdmin --launch-profile https` |
+| 9. Sign in | An administrator or critic account created in the Auth0 Dashboard |
 
 ### Day-to-day
 
@@ -138,16 +153,40 @@ dotnet ef database update --project MoviesAdmin
   7. `GenreAudienceRatingOneToMany` (Check-in 6) — replaces the `MovieGenre` many-to-many join and the `ContentRating` enum column with two one-to-many relationships: a genre has many movies and a movie belongs to one genre (`Movie.GenreId`), and an audience rating has many movies and a movie belongs to one audience rating (`Movie.AudienceRatingId`). Both FKs are required with `Restrict` delete. Adds the `AudienceRatings` table (unique `Name`) seeded with G, PG, PG-13, R, and NC-17, and sets *Pride & Prejudice* to Romance / PG. Existing movie rows have no valid genre or rating, so the Movies table has to be emptied before applying it (see below).
 - **Repository / Dependency Injection Pattern:** Implemented — generic `IRepository<T>`/`Repository<T>` base plus entity-specific `IMovieRepository`/`IGenreRepository`/`IReviewRepository`/`IDirectorRepository`/`IStudioRepository`, all registered in `Program.cs`. `Trailer` and `AudienceRating` have no queries beyond plain CRUD, so they resolve through the generic `IRepository<T>` registration instead of dedicated pairs.
 - **Genres and Audience Ratings pages:** `GenresController` and `AudienceRatingsController` with their `Views/Genres` and `Views/AudienceRatings` CRUD views were scaffolded with `dotnet aspnet-codegenerator` (local tool in `dotnet-tools.json`). The Index pages show how many movies use each genre/rating, Details lists those movies, and Delete is refused while any movie still uses it.
-- **Authentication (switched off):** ASP.NET Core Identity (`ApplicationUser`, `ApplicationDbContext : IdentityDbContext`) with `AccountController` (Login/Logout/AccessDenied only — no registration) and matching views/view models; the navbar in `_Layout.cshtml` exposes Dashboard/Movies/Genres/Ratings/Reviews links with auth-aware login/logout controls
+- **Authentication:** Auth0 hosted login (`AccountController` Login/Logout/Profile/AccessDenied); see [IAM](#iam-identityaccess-management).
 
 ## IAM (Identity/Access Management)
 
-> **Currently switched off.** Login/logout is commented out so CRUD is open access: the Identity registration, `RequireAdmin` policy, `IdentitySeeder` call, and `UseAuthentication`/`UseAuthorization` in `Program.cs`; `AccountController`; the `[Authorize]` attributes on `MoviesController`, `MovieOptionsController`, and `MovieLookupController`; the `Views/Account/*` views; and the login/logout links in `_Layout.cshtml` and the dashboard. `ApplicationDbContext` still derives from `IdentityDbContext`, so the schema and migrations are unchanged. Uncomment those pieces to switch it back on; the rest of this section describes that setup.
+Accounts, passwords and roles live in **Auth0**; this database only stores each review's author id (`Review.CreatedBy`, the Auth0 `sub`, read with `User.GetUserId()` from `ClaimsPrincipalExtensions.cs`).
 
-- **No self-registration.** `AccountController` only signs in/out. Every account is declared in the `SeedUsers` configuration section (email, password, display name, and **role**), and `Data/IdentitySeeder.cs` creates any missing account on startup and assigns its role. Existing passwords are never overwritten from config.
-- **Roles** `Admin` and `Viewer` are seeded via `HasData` in `ApplicationDbContext` (migration `AddIamRoles`, with fixed `ConcurrencyStamp`s so the seed is deterministic).
-- `Program.cs` registers a `"RequireAdmin"` policy; `MoviesController` is gated behind it, so only `Admin` accounts can manage movies. Anonymous visitors are redirected to `/Account/Login`; other roles get `/Account/AccessDenied`.
-- Credentials are never committed: in development the seed admin comes from `.env` via user secrets (`SeedUsers:0:*`); elsewhere, supply environment variables such as `SeedUsers__0__Password`.
+| Role | Can do |
+| --- | --- |
+| *(signed out)* | Home page only; every other page redirects to Auth0's login |
+| `administrator` | Movies CRUD (incl. posters, lookup, director/studio pickers), Genres, Audience Ratings |
+| `critic` | Browse movies and their details; write one review per movie; view, edit and delete **their own drafts**; publish (locks the review) |
+
+A signed-in user hitting a page their role doesn't allow gets `/Account/AccessDenied`. Asking for another critic's review id returns 404.
+
+**Auth0 setup (one-time, in the Auth0 Dashboard):**
+
+1. Applications → Create Application → *Regular Web Application* (ASP.NET Core). In its **Settings**:
+   - Allowed Callback URLs: `https://localhost:7198/callback`
+   - Allowed Logout URLs: `https://localhost:7198`
+   - Copy **Domain** and **Client ID** into `.env` (`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`), then run `./scripts/setup-secrets.sh`.
+2. User Management → Roles: create `administrator` and `critic` (lowercase, exactly).
+3. User Management → Users: create 1 administrator and several critics, and assign each a role.
+4. Actions → Library → Create Custom Action "Add Roles to Token" (trigger *Login / Post Login*), deploy:
+   ```js
+   exports.onExecutePostLogin = async (event, api) => {
+       const namespace = 'https://localhost:7198';
+       const roles = event.authorization?.roles ?? [];
+       api.idToken.setCustomClaim(`${namespace}/roles`, roles);
+       api.accessToken.setCustomClaim(`${namespace}/roles`, roles);
+   }
+   ```
+5. Actions → Triggers → post-login: drag the action between Start and Complete, Apply.
+
+The namespace must match `Auth0:RolesClaim` in `appsettings.json` (`https://localhost:7198/roles`); `Program.cs` sets it as the OIDC `RoleClaimType`, which is what makes `[Authorize(Roles = ...)]` work. A user's role change shows up after they log out and back in. When deployed, add the production URLs to the callback/logout lists.
 
 ## Movies Admin CRUD
 
@@ -197,17 +236,17 @@ dotnet ef database update --project MoviesAdmin
 - [x] Movie lookup from Wikidata + Wikipedia (no key needed), TMDB, or OMDb (IMDb + Rotten Tomatoes scores) to pre-fill the form, still fully editable
 
 ### Enabling
-- [x] Code First schema with 6 EF Core migrations applied
+- [x] Code First schema with 8 EF Core migrations applied
 - [x] Secrets out of source control: connection string, seed admin, and API keys in user secrets, fed from a git-ignored `.env` shared with Docker Compose
 - [x] SQL Server 2022 containerized with Docker Compose (persistent volume, health check)
 - [x] Repository + dependency injection pattern
-- [ ] ASP.NET Core Identity login/logout (built, currently commented out for open CRUD access)
-- [ ] Role-based access control: `Admin`/`Viewer` roles, `RequireAdmin` policy on `MoviesController` (built, currently commented out)
-- [ ] Accounts provisioned from configuration (`SeedUsers` → `IdentitySeeder`); self-registration removed (built, currently commented out)
+- [x] Auth0 login/logout; every page except Home requires sign-in
+- [x] Role-based access control: `administrator` (movie data CRUD) and `critic` (reviews), from an Auth0 post-login Action
 - [x] Earth-tone UI: forest green, warm white, and brown (glass navbar, landing hero, themed table, modals, and alerts)
 - [x] Responsive layout for desktop and mobile
 - [x] Light/dark mode toggle
-- [ ] Admin screens for Genres, Directors, Studios, and Reviews
+- [x] Admin screens for Genres and Audience Ratings; critic screens for Reviews (draft → publish)
+- [ ] Admin screens for Directors and Studios
 - [ ] Containerize the ASP.NET app itself (Dockerfile + compose service)
 
 ## Configuration and secrets
@@ -217,11 +256,11 @@ Nothing secret lives in `appsettings*.json` or git. `.env` (git-ignored; templat
 | `.env` value | Used by |
 | --- | --- |
 | `MSSQL_PORT`, `MSSQL_SA_PASSWORD` | `docker-compose.yml` (published port and SA password) **and** the connection string |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_DISPLAY_NAME` | `SeedUsers:0:*`, read by `Data/IdentitySeeder.cs` |
+| `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` | `Auth0:Domain` / `Auth0:ClientId`, read in `Program.cs` |
 | `TMDB_API_KEY`, `OMDB_API_KEY` (optional) | `MovieLookup:TmdbApiKey` / `MovieLookup:OmdbApiKey` |
 | `AZURE_STORAGE_CONNECTION_STRING` (default `"UseDevelopmentStorage=true"` = Azurite; blank = local disk), `AZURE_POSTER_CONTAINER` | `PosterStorage:ConnectionString` / `PosterStorage:ContainerName`, read by `Services/PosterStorage/` |
 
-`scripts/setup-secrets.sh` writes these into the project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) (`UserSecretsId` in `MoviesAdmin.csproj`; stored under `~/.microsoft/usersecrets/`), which ASP.NET Core and `dotnet ef` load automatically in Development. Inspect them with `dotnet user-secrets list --project MoviesAdmin`. Outside Development, use environment variables (`ConnectionStrings__DefaultConnection`, `SeedUsers__0__Password`, `MovieLookup__TmdbApiKey`, `PosterStorage__ConnectionString`, ...). The app stops at startup with a clear message if the database connection string is missing or the Azure Storage connection string is malformed.
+`scripts/setup-secrets.sh` writes these into the project's [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) (`UserSecretsId` in `MoviesAdmin.csproj`; stored under `~/.microsoft/usersecrets/`), which ASP.NET Core and `dotnet ef` load automatically in Development. Inspect them with `dotnet user-secrets list --project MoviesAdmin`. Outside Development, use environment variables (`ConnectionStrings__DefaultConnection`, `Auth0__Domain`, `Auth0__ClientId`, `MovieLookup__TmdbApiKey`, `PosterStorage__ConnectionString`, ...). The app stops at startup with a clear message if the database connection string or Auth0 settings are missing or the Azure Storage connection string is malformed.
 
 > Older commits contain the previous development SA and admin passwords in `appsettings.Development.json`. Treat those values as public and choose new ones in `.env`. A new SA password only applies to a fresh volume (`docker compose down -v`).
 
