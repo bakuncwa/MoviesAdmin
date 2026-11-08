@@ -6,7 +6,7 @@ namespace MoviesAdmin.Repositories
     // ever list, load, edit or delete the signed-in critic's own reviews.
     public interface IReviewRepository : IRepository<Review>
     {
-        // "My reviews": everything one critic has written, newest first, with the movie loaded.
+        // My Reviews page: everything one critic has written, newest first, with the movie loaded.
         Task<IEnumerable<Review>> GetByCriticAsync(string createdBy);
 
         // One review, only if it belongs to this critic; null otherwise (including someone else's).

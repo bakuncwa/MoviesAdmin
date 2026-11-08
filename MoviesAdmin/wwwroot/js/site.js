@@ -5,7 +5,7 @@
 
 // Light/dark mode toggle. The initial theme (from localStorage, otherwise light — the earth-tone
 // theme is light-first) is already applied by the inline script in _Layout.cshtml's <head>
-// before this file loads, so here we only wire up the button and keep it in sync with that state.
+// before this file loads, so this file only wires up the button and keeps it in sync with that state.
 (() => {
     'use strict'
 

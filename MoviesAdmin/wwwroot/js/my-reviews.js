@@ -19,7 +19,7 @@
     async function openModal(url) {
         try {
             const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            // The server sent us somewhere else (e.g. a published review can't be deleted): follow it.
+            // The server redirected elsewhere (e.g. a published review can't be deleted): follow it.
             if (response.redirected) {
                 window.location.href = response.url;
                 return;

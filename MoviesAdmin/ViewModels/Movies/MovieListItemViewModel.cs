@@ -36,6 +36,10 @@ namespace MoviesAdmin.ViewModels.Movies
 
         public int ReviewCount { get; set; }
 
+        // True when the signed-in critic has published their review of this movie; the critic poster
+        // card then shows a green "Reviewed" button instead of "Review".
+        public bool ReviewedByMe { get; set; }
+
         public static MovieListItemViewModel FromEntity(Movie movie)
         {
             return new MovieListItemViewModel

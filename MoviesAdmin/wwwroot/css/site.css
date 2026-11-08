@@ -912,7 +912,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
-/* SweetAlert2 (theme: 'dark'/'light' is chosen per call in movies.js; these match our palette). */
+/* SweetAlert2 (theme: 'dark'/'light' is chosen per call in movies.js; these match the app palette). */
 [data-bs-theme="dark"] .swal2-popup {
   --swal2-background: var(--ma-surface);
   --swal2-color: var(--ma-text);

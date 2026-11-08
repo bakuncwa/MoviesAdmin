@@ -43,10 +43,20 @@ else if (!User.IsInRole(Roles.Administrator))
                             <span class="text-body-secondary">No reviews yet</span>
                         }
                     </p>
-                    @* Write a review, or open this critic's existing one (one review per movie). *@
-                    <a class="btn btn-sm btn-outline-secondary w-100" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
-                        <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review
-                    </a>
+                    @* Write a review, or open this critic's existing one (one review per movie). Once
+                       their review is published the button turns green and reads "Reviewed". *@
+                    @if (movie.ReviewedByMe)
+                    {
+                        <a class="btn btn-sm btn-primary w-100" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
+                            <i class="fa-solid fa-square-check me-1" aria-hidden="true"></i>Reviewed
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-outline-secondary w-100" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
+                            <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review
+                        </a>
+                    }
                 </div>
             </article>
         }

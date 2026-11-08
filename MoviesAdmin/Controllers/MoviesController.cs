@@ -147,7 +147,13 @@ namespace MoviesAdmin.Controllers
         private async Task<List<MovieListItemViewModel>> SearchCatalogAsync(MovieCatalogQuery query)
         {
             var movies = await _movieRepository.SearchAsync(query.Q?.Trim(), query.GenreId, query.Year, query.RatingId, query.Sort);
-            return movies.Select(MovieListItemViewModel.FromEntity).ToList();
+            var userId = User.GetUserId();
+            return movies.Select(movie =>
+            {
+                var item = MovieListItemViewModel.FromEntity(movie);
+                item.ReviewedByMe = movie.Reviews.Any(r => r.IsPublished && r.CreatedBy == userId);
+                return item;
+            }).ToList();
         }
 
         // GET: Movies/Create

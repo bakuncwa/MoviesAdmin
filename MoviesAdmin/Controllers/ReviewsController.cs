@@ -15,7 +15,7 @@ namespace MoviesAdmin.Controllers
     // wwwroot/js/my-reviews.js. Everything that finishes with a review ends up back on My Reviews
     // with that review's View modal open (TempData["OpenReview"]).
     //
-    //   GET  Reviews                     my reviews (drafts and published)
+    //   GET  Reviews                     the critic's reviews (drafts and published)
     //   GET  Reviews/Create?movieId=5    POST Reviews/Create     (page; save as draft, or publish now)
     //   GET  Reviews/Details/5                                   (modal)
     //   GET  Reviews/Edit/5              POST Reviews/Edit/5     (page; drafts only)
