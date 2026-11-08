@@ -610,12 +610,6 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1.35rem;
 }
 
-.catalog-count {
-  margin-bottom: 1rem;
-  color: var(--ma-muted);
-  font-size: 0.875rem;
-}
-
 .catalog-empty {
   display: grid;
   place-items: center;
@@ -739,6 +733,25 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Records table ------------------------------------------------------------------------------- */
+
+/* Title cell of the admin Movies table and the critic's My Reviews table: plain bold text in the
+   body colour. On the Movies table it is still a button that opens the Details modal. */
+.catalog-title {
+  color: var(--bs-body-color);
+  font-weight: 700;
+}
+
+button.catalog-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: start;
+}
+
+button.catalog-title:focus-visible {
+  outline: 2px solid var(--ma-accent);
+  outline-offset: 2px;
+}
 
 .catalog-list-view {
   border: 1px solid var(--ma-border);

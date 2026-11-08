@@ -34,8 +34,6 @@ namespace MoviesAdmin.ViewModels.Movies
 
         public bool HasFilters => !string.IsNullOrWhiteSpace(Q) || GenreId.HasValue || Year.HasValue || RatingId.HasValue;
 
-        public string SortLabel => SortOptions.TryGetValue(Sort, out var label) ? label : SortOptions[MovieSortOrder.ReleaseDateDesc];
-
         // Sort dropdown options, in display order.
         public static readonly IReadOnlyDictionary<MovieSortOrder, string> SortOptions = new Dictionary<MovieSortOrder, string>
         {

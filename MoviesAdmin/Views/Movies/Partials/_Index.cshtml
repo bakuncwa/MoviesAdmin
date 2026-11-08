@@ -64,9 +64,6 @@ else if (!User.IsInRole(Roles.Administrator))
 }
 else
 {
-    var count = Model.Movies.Count;
-    <p class="catalog-count">@count @(count == 1 ? "record" : "records")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
-
     <div class="table-responsive catalog-list-view">
         <table class="table table-hover align-middle catalog-table mb-0">
             <thead>
@@ -94,7 +91,7 @@ else
                         </td>
                         <td>
                             @* Opens GET Movies/Details/5 in the shared modal. *@
-                            <button type="button" class="btn btn-link p-0 fw-semibold text-start movie-view-btn" data-id="@movie.Id" title="View details">@movie.Title</button>
+                            <button type="button" class="catalog-title movie-view-btn" data-id="@movie.Id" title="View details">@movie.Title</button>
                         </td>
                         <td>@releaseText</td>
                         <td>@movie.RuntimeText</td>

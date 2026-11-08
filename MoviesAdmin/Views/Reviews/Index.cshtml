@@ -42,7 +42,7 @@ else
                         <td>
                             <img src="@MoviePosterResolver.Resolve(item.Movie)" alt="@item.Movie.Title poster" class="catalog-table-thumb" loading="lazy" />
                         </td>
-                        <td class="fw-semibold">@item.Movie.Title</td>
+                        <td class="catalog-title">@item.Movie.Title</td>
                         <td class="text-nowrap"><partial name="_Stars" model="item.Rating" /> <span class="ms-1">@item.Rating.ToString("0.#")</span></td>
                         <td><partial name="_StatusBadge" model="item" /></td>
                         <td>@((item.PublishedAt ?? item.UpdatedAt ?? item.CreatedAt).ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</td>
