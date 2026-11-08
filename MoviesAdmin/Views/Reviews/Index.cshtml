@@ -10,7 +10,8 @@
 <partial name="_Message" />
 
 <p>
-    <a asp-action="Create" class="btn btn-primary"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Write a Review</a>
+    @* Reviews start from a movie's Review button, so this goes to the catalog to pick one. *@
+    <a asp-controller="Movies" asp-action="Index" class="btn btn-primary"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Write a Review</a>
 </p>
 
 @if (!Model.Any())
@@ -47,7 +48,9 @@ else
                         <td>@((item.PublishedAt ?? item.UpdatedAt ?? item.CreatedAt).ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</td>
                         <td class="text-end">
                             <div class="d-inline-flex gap-1" role="group" aria-label="Review actions">
-                                <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@item.Id">
+                                @* View and Delete open as modals (wwwroot/js/my-reviews.js); the links
+                                   still work without JavaScript. Edit is its own page. *@
+                                <a class="btn btn-sm btn-outline-secondary review-view-btn" asp-action="Details" asp-route-id="@item.Id" data-id="@item.Id">
                                     <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>View
                                 </a>
                                 @* Drafts only: requirement 7 locks a review once it's published. *@
@@ -56,7 +59,7 @@ else
                                     <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">
                                         <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
                                     </a>
-                                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                    <a class="btn btn-sm btn-outline-danger review-delete-btn" asp-action="Delete" asp-route-id="@item.Id" data-id="@item.Id">
                                         <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
                                     </a>
                                 }
@@ -67,4 +70,18 @@ else
             </tbody>
         </table>
     </div>
+}
+
+@* Shared modal shell for View and Delete. TempData["OpenReview"] (set after saving, publishing, or
+   opening a review's URL directly) names a review whose View modal opens on arrival. *@
+<div class="modal fade" id="review-modal" tabindex="-1" aria-hidden="true" data-open-review="@TempData["OpenReview"]">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" id="review-modal-content">
+            <!-- injected by wwwroot/js/my-reviews.js -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/my-reviews.js" asp-append-version="true"></script>
 }

@@ -75,7 +75,7 @@
                 <div class="d-flex gap-2 mt-4">
                     @if (User.IsInRole(Roles.Administrator))
                     {
-                        <button type="button" class="btn btn-glass movie-edit-btn" data-id="@Model.Id"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</button>
+                        <a class="btn btn-glass" asp-action="Edit" asp-route-id="@Model.Id"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</a>
                     }
                     else
                     {

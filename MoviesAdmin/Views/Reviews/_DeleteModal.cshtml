@@ -1,0 +1,33 @@
+@model MoviesAdmin.Models.Review
+@using MoviesAdmin.Services.ReviewText
+@using MoviesAdmin.ViewModels.Movies
+
+@* GET Reviews/Delete/5: the delete confirmation modal on My Reviews (drafts only), injected into
+   #review-modal-content by wwwroot/js/my-reviews.js. Confirming posts to POST Reviews/Delete/5. *@
+
+<div class="modal-header">
+    <h5 class="modal-title">Delete this draft?</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div class="review-detail mb-0">
+        <img src="@MoviePosterResolver.Resolve(Model.Movie)" alt="@Model.Movie.Title poster" class="review-detail-poster" />
+        <dl class="row flex-grow-1 mb-0">
+            <dt class="col-sm-3">Movie</dt>
+            <dd class="col-sm-9">@Model.Movie.Title</dd>
+
+            <dt class="col-sm-3">Rating</dt>
+            <dd class="col-sm-9"><partial name="_Stars" model="Model.Rating" /> <span class="ms-1">@Model.Rating.ToString("0.#") / 5</span></dd>
+
+            <dt class="col-sm-3">Review</dt>
+            <dd class="col-sm-9 review-body">@Html.Raw(ReviewHtml.Sanitize(Model.Text))</dd>
+        </dl>
+    </div>
+    <p class="mt-3 mb-0 text-body-secondary small">This can't be undone.</p>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
+        <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete draft</button>
+    </form>
+</div>

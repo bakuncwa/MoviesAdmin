@@ -18,10 +18,10 @@
     </div>
     @if (User.IsInRole(Roles.Administrator))
     {
-        @* Opens GET Movies/Create in the shared modal. *@
-        <button type="button" class="btn btn-primary text-nowrap movie-create-btn">
+        @* GET Movies/Create: the Add Movie page. *@
+        <a class="btn btn-primary text-nowrap" asp-action="Create">
             <i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie
-        </button>
+        </a>
     }
     else
     {
@@ -72,7 +72,13 @@
     </div>
 </section>
 
-@* Shared modal shell for Create/Edit/View; its content is swapped in via AJAX by movies.js. *@
+@* "Movie added/saved", set by MoviesController after the Create/Edit page saves; movies.js shows it as a toast. *@
+@if (TempData["MovieMessage"] is string movieMessage)
+{
+    <div id="movie-flash" data-message="@movieMessage" hidden></div>
+}
+
+@* Modal shell for the View (Details) dialog; its content is swapped in via AJAX by movies.js. *@
 <div class="modal fade" id="movie-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content" id="movie-modal-content">
@@ -81,18 +87,11 @@
     </div>
 </div>
 
-@* Antiforgery token source for the Delete fetch() call, which has no <form> of its own (Create/Edit
-   forms carry their own token inside Partials/_Create.cshtml and Partials/_Edit.cshtml). *@
+@* Antiforgery token source for the Delete fetch() call, which has no <form> of its own (the Create
+   and Edit pages' forms carry their own token). *@
 <form id="antiforgery-form" class="d-none">@Html.AntiForgeryToken()</form>
 
-@section Styles {
-    <link rel="stylesheet" href="~/lib/tom-select/dist/css/tom-select.bootstrap5.min.css" />
-}
-
 @section Scripts {
-    @* Client-side validation for the Create/Edit form, which movies.js parses after loading it. *@
-    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
-    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
     <script src="~/js/movies.js" asp-append-version="true"></script>
 }

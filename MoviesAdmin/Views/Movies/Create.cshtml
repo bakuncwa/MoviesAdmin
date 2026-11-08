@@ -1,0 +1,30 @@
+@model MoviesAdmin.ViewModels.Movies.MovieFormViewModel
+
+@{
+    ViewData["Title"] = "Add Movie";
+}
+
+@* GET/POST Movies/Create. The fields are shared with Edit via Partials/_Form; wwwroot/js/movies.js
+   wires up the lookup panel, Director/Studio pickers and poster preview. *@
+
+<a asp-action="Index" class="back-link"><i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Back to Movies</a>
+<h1 class="page-title">Add Movie</h1>
+
+<form id="movie-form" class="form-card" asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
+    <partial name="Partials/_Form" model="Model" />
+    <div class="form-card-actions">
+        <a asp-action="Index" class="btn btn-secondary"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Movie</button>
+    </div>
+</form>
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/tom-select/dist/css/tom-select.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/lib/sweetalert2/dist/sweetalert2.all.min.js"></script>
+    <script src="~/lib/tom-select/dist/js/tom-select.complete.min.js"></script>
+    <script src="~/js/movies.js" asp-append-version="true"></script>
+}

@@ -7,20 +7,12 @@
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
+@* The movie is fixed by where the critic came from (a movie's Review button, or the review being
+   edited), so it's shown read-only; ReviewsController checks the posted MovieId again. *@
 <div class="mb-3">
-    <label asp-for="MovieId" class="form-label"></label>
-    @if (Model.IsEdit)
-    {
-        <input type="hidden" asp-for="MovieId" />
-        <p class="form-control-plaintext fw-semibold">@Model.MovieTitle</p>
-    }
-    else
-    {
-        <select asp-for="MovieId" asp-items="ViewBag.MovieId" class="form-select">
-            <option value="">Choose a movie...</option>
-        </select>
-        <span asp-validation-for="MovieId" class="text-danger"></span>
-    }
+    <label for="movie-title" class="form-label">Movie</label>
+    <input type="text" id="movie-title" class="form-control-plaintext fw-semibold" value="@Model.MovieTitle" readonly />
+    <input type="hidden" asp-for="MovieId" />
 </div>
 
 <div class="mb-3">

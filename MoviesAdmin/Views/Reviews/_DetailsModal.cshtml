@@ -1,0 +1,57 @@
+@model MoviesAdmin.Models.Review
+@using MoviesAdmin.Services.ReviewText
+@using MoviesAdmin.ViewModels.Movies
+
+@* GET Reviews/Details/5: the View modal on My Reviews, injected into #review-modal-content by
+   wwwroot/js/my-reviews.js. Draft actions (Edit, Publish, Delete) only appear while it's a draft. *@
+
+<div class="modal-header">
+    <h5 class="modal-title">Review of @Model.Movie.Title</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div class="review-detail mb-0">
+        <img src="@MoviePosterResolver.Resolve(Model.Movie)" alt="@Model.Movie.Title poster" class="review-detail-poster" />
+        <dl class="row flex-grow-1 mb-0">
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9"><partial name="_StatusBadge" model="Model" /></dd>
+
+            <dt class="col-sm-3">Rating</dt>
+            <dd class="col-sm-9"><partial name="_Stars" model="Model.Rating" /> <span class="ms-1">@Model.Rating.ToString("0.#") / 5</span></dd>
+
+            <dt class="col-sm-3">Review</dt>
+            <dd class="col-sm-9 review-body">@Html.Raw(ReviewHtml.Sanitize(Model.Text))</dd>
+
+            <dt class="col-sm-3">Created</dt>
+            <dd class="col-sm-9">@Model.CreatedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+
+            @if (Model.PublishedAt.HasValue)
+            {
+                <dt class="col-sm-3">Published</dt>
+                <dd class="col-sm-9">@Model.PublishedAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+            }
+            else if (Model.UpdatedAt.HasValue)
+            {
+                <dt class="col-sm-3">Last edited</dt>
+                <dd class="col-sm-9">@Model.UpdatedAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</dd>
+            }
+        </dl>
+    </div>
+</div>
+<div class="modal-footer">
+    @if (!Model.IsPublished)
+    {
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger me-auto review-delete-btn" data-id="@Model.Id"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-glass"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit</a>
+        <form asp-action="Publish" asp-route-id="@Model.Id" method="post" class="d-inline"
+              onsubmit="return confirm('Publish this review? Once published it can no longer be edited or deleted.');">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Publish</button>
+        </form>
+    }
+    else
+    {
+        @* Requirement 7: once published, a review can no longer be modified. *@
+        <span class="text-body-secondary me-auto"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Published reviews can't be changed.</span>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    }
+</div>

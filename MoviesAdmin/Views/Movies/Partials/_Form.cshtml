@@ -1,13 +1,12 @@
 @model MoviesAdmin.ViewModels.Movies.MovieFormViewModel
 
-@* Shared fields of the movie form, rendered inside the <form> of Partials/_Create.cshtml (GET/POST
-   Movies/Create) and Partials/_Edit.cshtml (GET/POST Movies/Edit/5). The form is submitted via
-   fetch()+FormData from movies.js, not a normal browser post, so validation failures (422) come
-   back as _Create/_Edit re-rendered with error messages. *@
+@* Shared fields of the movie form, rendered inside the <form> of the Create page (GET/POST
+   Movies/Create) and the Edit page (GET/POST Movies/Edit/5). It's an ordinary browser post, so a
+   validation failure comes back as the same page re-rendered with error messages. *@
 
 @{
     var isEdit = Model.IsEdit;
-    // Set on a 422 re-render; movies.js also reveals the banner when client-side validation fails.
+    // Set when the server re-renders the page with errors; movies.js also reveals the banner when client-side validation fails.
     var hasErrors = !ViewData.ModelState.IsValid;
     // Options set by MoviesController.PopulateViewBagAsync.
     var lookupSources = (List<MoviesAdmin.ViewModels.Movies.LookupSourceViewModel>)ViewBag.LookupSources;
@@ -16,7 +15,7 @@
 
 @* No min/max attributes on the number inputs: jQuery Validate would turn them into rules with
    its own generic messages, ahead of the [Range] messages on the view model. *@
-<div class="modal-body">
+<div class="movie-form-body">
     <div id="movie-form-warning" class="form-warning" role="alert" hidden="@(!hasErrors)">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
         <div>

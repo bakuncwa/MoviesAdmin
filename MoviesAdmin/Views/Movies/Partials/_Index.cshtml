@@ -113,9 +113,9 @@ else
                         </td>
                         <td class="text-end movie-actions-cell">
                             <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
-                                <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@movie.Id">
                                     <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
-                                </button>
+                                </a>
                                 @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
                                 <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
                                         data-id="@movie.Id"

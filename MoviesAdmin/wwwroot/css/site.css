@@ -1338,3 +1338,43 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column;
   }
 }
+
+/* Full-page forms (Movies Add/Edit, Reviews Write/Edit) --------------------------------------- */
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: var(--ma-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--ma-accent);
+}
+
+.page-title {
+  margin-bottom: 1.25rem;
+}
+
+/* The movie form's fields were laid out for the old modal body; on a page they sit in a card. */
+.form-card {
+  max-width: 960px;
+  border: 1px solid var(--ma-border);
+  border-radius: 1.25rem;
+  background: var(--ma-surface);
+}
+
+.movie-form-body {
+  padding: 1.5rem;
+}
+
+.form-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--ma-border);
+}

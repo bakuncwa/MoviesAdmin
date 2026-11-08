@@ -12,16 +12,16 @@ using MoviesAdmin.ViewModels.Movies;
 
 namespace MoviesAdmin.Controllers
 {
-    // Admin CRUD for Movies: a records table with async search/filter/sort, Create/Edit/Details as
-    // AJAX-loaded modals, Delete confirmed client-side (SweetAlert2 + a 10-second "Undo" window in
-    // wwwroot/js/movies.js) before this controller ever removes anything.
+    // Admin CRUD for Movies: a records table with async search/filter/sort, Create/Edit as their own
+    // pages, Details as an AJAX-loaded modal, Delete confirmed in a modal client-side (SweetAlert2 +
+    // a 10-second "Undo" window in wwwroot/js/movies.js) before this controller ever removes anything.
     //
-    // Each partial lives in Views/Movies/Partials/ under the name of the action that renders it:
+    // Pages are Views/Movies/<Action>.cshtml; partials live in Views/Movies/Partials/:
     //   GET  Movies              -> Index.cshtml (+ Partials/_Index)
     //   GET  Movies/drama        -> Index.cshtml, filtered to that genre ("movies-genre" route)
     //   GET  Movies/Search       -> Partials/_Index      (async refresh of the records table)
-    //   GET  Movies/Create       -> Partials/_Create     POST Movies/Create
-    //   GET  Movies/Edit/5       -> Partials/_Edit       POST Movies/Edit/5
+    //   GET  Movies/Create       -> Create.cshtml        POST Movies/Create  (back to Index when saved)
+    //   GET  Movies/Edit/5       -> Edit.cshtml          POST Movies/Edit/5  (back to Index when saved)
     //   GET  Movies/Details/5    -> Partials/_Details
     //   GET  Movies/Trailer/5    -> Partials/_Trailer
     //   POST Movies/Delete/5
@@ -157,7 +157,7 @@ namespace MoviesAdmin.Controllers
         {
             var model = new MovieFormViewModel();
             await PopulateViewBagAsync(model);
-            return PartialView("Partials/_Create", model);
+            return View(model);
         }
 
         // POST: Movies/Create
@@ -211,7 +211,8 @@ namespace MoviesAdmin.Controllers
             await _movieRepository.AddAsync(movie);
             await _movieRepository.SaveChangesAsync();
 
-            return Json(new { success = true, id = movie.Id });
+            TempData["MovieMessage"] = $"\"{movie.Title}\" added";
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Movies/Edit/5
@@ -242,7 +243,7 @@ namespace MoviesAdmin.Controllers
             model.SetRuntime(movie.RuntimeMinutes);
             await PopulateViewBagAsync(model);
 
-            return PartialView("Partials/_Edit", model);
+            return View(model);
         }
 
         // POST: Movies/Edit/5
@@ -313,7 +314,8 @@ namespace MoviesAdmin.Controllers
             _movieRepository.Update(movie);
             await _movieRepository.SaveChangesAsync();
 
-            return Json(new { success = true, id = movie.Id });
+            TempData["MovieMessage"] = $"\"{movie.Title}\" saved";
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Movies/Details/5
@@ -375,8 +377,7 @@ namespace MoviesAdmin.Controllers
         private async Task<IActionResult> FormValidationFailedAsync(MovieFormViewModel model)
         {
             await PopulateViewBagAsync(model);
-            Response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-            return PartialView(model.IsEdit ? "Partials/_Edit" : "Partials/_Create", model);
+            return View(model.IsEdit ? nameof(Edit) : nameof(Create), model);
         }
 
         // The dropdowns only offer existing ids, but a tampered post could send any number; catch

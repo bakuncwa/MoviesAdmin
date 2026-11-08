@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.ReviewText;
@@ -12,12 +11,16 @@ namespace MoviesAdmin.Controllers
     // User.GetUserId(), so a critic can only list, view, edit or delete their own reviews; asking
     // for anyone else's review id is a 404, same as one that doesn't exist.
     //
+    // Write/Edit are pages; View (Details) and Delete open as modals on My Reviews, loaded by
+    // wwwroot/js/my-reviews.js. Everything that finishes with a review ends up back on My Reviews
+    // with that review's View modal open (TempData["OpenReview"]).
+    //
     //   GET  Reviews                     my reviews (drafts and published)
-    //   GET  Reviews/Create?movieId=5    POST Reviews/Create     (save as draft, or publish now)
-    //   GET  Reviews/Details/5
-    //   GET  Reviews/Edit/5              POST Reviews/Edit/5     (drafts only)
+    //   GET  Reviews/Create?movieId=5    POST Reviews/Create     (page; save as draft, or publish now)
+    //   GET  Reviews/Details/5                                   (modal)
+    //   GET  Reviews/Edit/5              POST Reviews/Edit/5     (page; drafts only)
     //   POST Reviews/Publish/5                                   (drafts only; locks the review)
-    //   GET  Reviews/Delete/5            POST Reviews/Delete/5   (drafts only)
+    //   GET  Reviews/Delete/5            POST Reviews/Delete/5   (modal; drafts only)
     [Authorize(Roles = Roles.Critic)]
     public class ReviewsController : Controller
     {
@@ -40,6 +43,8 @@ namespace MoviesAdmin.Controllers
         }
 
         // GET: Reviews/Details/5
+        // The View modal's content. Opened directly (a bookmark, a typed URL), it shows My Reviews
+        // with the same modal open instead.
         public async Task<IActionResult> Details(int id)
         {
             var review = await _reviewRepository.GetByIdForCriticAsync(id, User.GetUserId());
@@ -48,26 +53,38 @@ namespace MoviesAdmin.Controllers
                 return NotFound();
             }
 
-            return View(review);
+            if (!IsModalRequest())
+            {
+                return ShowOnMyReviews(review.Id);
+            }
+
+            return PartialView("_DetailsModal", review);
         }
 
         // GET: Reviews/Create?movieId=5
+        // Opened from a movie's Review button, so the movie is fixed: the form shows it read-only.
         // One review per movie: if this critic already reviewed the movie, open that review instead.
         public async Task<IActionResult> Create(int? movieId)
         {
-            if (movieId.HasValue)
+            if (!movieId.HasValue)
             {
-                var existing = await _reviewRepository.GetByMovieForCriticAsync(movieId.Value, User.GetUserId());
-                if (existing != null)
-                {
-                    TempData["ReviewMessage"] = "You've already reviewed this movie.";
-                    return RedirectToAction(nameof(Details), new { id = existing.Id });
-                }
+                return RedirectToAction("Index", "Movies");
             }
 
-            var model = new ReviewFormViewModel { MovieId = movieId };
-            await PopulateMoviesAsync(model.MovieId);
-            return View(model);
+            var movie = await _movieRepository.GetByIdAsync(movieId.Value);
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            var existing = await _reviewRepository.GetByMovieForCriticAsync(movie.Id, User.GetUserId());
+            if (existing != null)
+            {
+                TempData["ReviewMessage"] = "You've already reviewed this movie.";
+                return ShowOnMyReviews(existing.Id);
+            }
+
+            return View(new ReviewFormViewModel { MovieId = movie.Id, MovieTitle = MovieTitle(movie) });
         }
 
         // POST: Reviews/Create
@@ -79,21 +96,20 @@ namespace MoviesAdmin.Controllers
             var userId = User.GetUserId();
             CleanReviewText(model);
 
-            if (model.MovieId.HasValue)
+            var movie = model.MovieId.HasValue ? await _movieRepository.GetByIdAsync(model.MovieId.Value) : null;
+            if (movie == null)
             {
-                if (await _movieRepository.GetByIdAsync(model.MovieId.Value) == null)
-                {
-                    ModelState.AddModelError(nameof(model.MovieId), "That movie no longer exists. Choose another from the list.");
-                }
-                else if (await _reviewRepository.GetByMovieForCriticAsync(model.MovieId.Value, userId) != null)
-                {
-                    ModelState.AddModelError(nameof(model.MovieId), "You've already reviewed this movie. Each critic can review a movie once.");
-                }
+                return NotFound();
+            }
+
+            if (await _reviewRepository.GetByMovieForCriticAsync(movie.Id, userId) != null)
+            {
+                ModelState.AddModelError(string.Empty, "You've already reviewed this movie. Each critic can review a movie once.");
             }
 
             if (!ModelState.IsValid)
             {
-                await PopulateMoviesAsync(model.MovieId);
+                model.MovieTitle = MovieTitle(movie);
                 return View(model);
             }
 
@@ -113,7 +129,7 @@ namespace MoviesAdmin.Controllers
             await _reviewRepository.SaveChangesAsync();
 
             TempData["ReviewMessage"] = publish ? "Review published." : "Draft saved.";
-            return RedirectToAction(nameof(Details), new { id = review.Id });
+            return ShowOnMyReviews(review.Id);
         }
 
         // GET: Reviews/Edit/5
@@ -134,7 +150,7 @@ namespace MoviesAdmin.Controllers
             {
                 Id = review.Id,
                 MovieId = review.MovieId,
-                MovieTitle = review.Movie.Title,
+                MovieTitle = MovieTitle(review.Movie),
                 Rating = review.Rating,
                 Text = review.Text
             });
@@ -163,7 +179,7 @@ namespace MoviesAdmin.Controllers
             }
 
             model.MovieId = review.MovieId;
-            model.MovieTitle = review.Movie.Title;
+            model.MovieTitle = MovieTitle(review.Movie);
             ModelState.Remove(nameof(model.MovieId));
             CleanReviewText(model);
             if (!ModelState.IsValid)
@@ -186,7 +202,7 @@ namespace MoviesAdmin.Controllers
             await _reviewRepository.SaveChangesAsync();
 
             TempData["ReviewMessage"] = publish ? "Review published." : "Draft saved.";
-            return RedirectToAction(nameof(Details), new { id = review.Id });
+            return ShowOnMyReviews(review.Id);
         }
 
         // POST: Reviews/Publish/5
@@ -212,7 +228,7 @@ namespace MoviesAdmin.Controllers
             await _reviewRepository.SaveChangesAsync();
 
             TempData["ReviewMessage"] = "Review published.";
-            return RedirectToAction(nameof(Details), new { id = review.Id });
+            return ShowOnMyReviews(review.Id);
         }
 
         // GET: Reviews/Delete/5
@@ -229,7 +245,12 @@ namespace MoviesAdmin.Controllers
                 return PublishedIsLocked(review);
             }
 
-            return View(review);
+            if (!IsModalRequest())
+            {
+                return ShowOnMyReviews(review.Id);
+            }
+
+            return PartialView("_DeleteModal", review);
         }
 
         // POST: Reviews/Delete/5
@@ -275,25 +296,24 @@ namespace MoviesAdmin.Controllers
             }
         }
 
-        // Edit/Delete/Publish on a published review: back to its Details page with an explanation.
+        // Edit/Delete/Publish on a published review: back to its View modal with an explanation.
         private RedirectToActionResult PublishedIsLocked(Review review)
         {
             TempData["ReviewMessage"] = "This review is published, so it can no longer be changed or deleted.";
-            return RedirectToAction(nameof(Details), new { id = review.Id });
+            return ShowOnMyReviews(review.Id);
         }
 
-        // Movie dropdown for Create: every movie this critic hasn't reviewed yet.
-        private async Task PopulateMoviesAsync(int? selectedMovieId)
+        // My Reviews, with this review's View modal opened on arrival (wwwroot/js/my-reviews.js).
+        private RedirectToActionResult ShowOnMyReviews(int reviewId)
         {
-            var reviewedMovieIds = (await _reviewRepository.GetByCriticAsync(User.GetUserId()))
-                .Select(r => r.MovieId)
-                .ToHashSet();
-            var movies = (await _movieRepository.GetAllAsync())
-                .Where(m => !reviewedMovieIds.Contains(m.Id))
-                .OrderBy(m => m.Title)
-                .Select(m => new { m.Id, Title = $"{m.Title} ({m.ReleaseDate.Year})" });
-
-            ViewBag.MovieId = new SelectList(movies, "Id", "Title", selectedMovieId);
+            TempData["OpenReview"] = reviewId;
+            return RedirectToAction(nameof(Index));
         }
+
+        // The modals fetch their content with this header; a normal page load doesn't send it.
+        private bool IsModalRequest() => Request.Headers.XRequestedWith == "XMLHttpRequest";
+
+        // How the form names the (read-only) movie: "Chungking Express (1994)".
+        private static string MovieTitle(Movie movie) => $"{movie.Title} ({movie.ReleaseDate.Year})";
     }
 }

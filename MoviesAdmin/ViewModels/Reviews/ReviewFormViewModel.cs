@@ -14,7 +14,7 @@ namespace MoviesAdmin.ViewModels.Reviews
         [Display(Name = "Movie")]
         public int? MovieId { get; set; }
 
-        // Shown on Edit, where the movie can't be changed.
+        // The movie as the form shows it, read-only: "Chungking Express (1994)".
         public string? MovieTitle { get; set; }
 
         // Set by the star picker (a hidden input): 0 to 5 in half-star steps.

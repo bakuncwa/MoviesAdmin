@@ -1,14 +1,11 @@
-// Movies admin CRUD page (Views/Movies/Index.cshtml). Only runs there — bails out immediately if
-// the page doesn't have the modal shell this file depends on.
+// Movies pages: the catalog (Views/Movies/Index.cshtml, with the View modal and Delete) and the
+// Add/Edit pages (Create.cshtml, Edit.cshtml), which share the movie form. Each part only runs on
+// the page that has its elements.
 (() => {
     'use strict';
 
     const movieModalEl = document.getElementById('movie-modal');
-    if (!movieModalEl) {
-        return;
-    }
-
-    const movieModal = new bootstrap.Modal(movieModalEl);
+    const movieModal = movieModalEl ? new bootstrap.Modal(movieModalEl) : null;
     const modalContent = document.getElementById('movie-modal-content');
     const catalog = document.getElementById('movie-catalog');
     const searchInput = document.getElementById('movie-search');
@@ -21,81 +18,31 @@
     }
 
     // Reset the modal body once it's fully hidden, so the next open never briefly shows stale content.
-    movieModalEl.addEventListener('hidden.bs.modal', () => {
-        setModalContent('');
+    movieModalEl?.addEventListener('hidden.bs.modal', () => {
+        modalContent.innerHTML = '';
     });
-
-    // Every swap of the modal's content goes through here: Tom Select pickers keep their dropdown
-    // on <body>, so they're destroyed first or those dropdowns would be left behind.
-    function setModalContent(html) {
-        modalContent.querySelectorAll('select').forEach(select => select.tomselect?.destroy());
-        modalContent.innerHTML = html;
-    }
 
     function getAntiForgeryToken() {
         const tokenInput = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]');
         return tokenInput ? tokenInput.value : '';
     }
 
-    // --- Loading Create/Edit/View content into the shared modal -----------------------------
+    // --- View (Details) modal ------------------------------------------------------------------
 
-    async function loadModal(url) {
+    async function openDetails(id) {
         try {
-            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(`/Movies/Details/${id}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) {
                 await swal({ icon: 'error', title: 'Could not load that movie.', text: `Server responded with ${response.status}.` });
                 return;
             }
-            setModalContent(await response.text());
-            bindModalContent();
+            modalContent.innerHTML = await response.text();
+            // Lazily fetch the trailer <iframe> only once "Watch Trailer" is clicked.
+            modalContent.querySelector('.movie-trailer-btn')?.addEventListener('click', onTrailerButtonClick);
             movieModal.show();
         } catch (err) {
             await swal({ icon: 'error', title: 'Something went wrong', text: 'Could not reach the server. Please try again.' });
         }
-    }
-
-    function bindModalContent() {
-        const form = modalContent.querySelector('#movie-form');
-        if (form) {
-            form.addEventListener('submit', onFormSubmit);
-            // The form arrives via fetch(), after jquery-validation-unobtrusive scanned the page, so
-            // its data-val-* rules have to be registered by hand to get in-browser warnings.
-            if (window.jQuery?.validator?.unobtrusive) {
-                jQuery.validator.unobtrusive.parse(form);
-                // The lookup panel's search boxes aren't part of the movie, so never let them
-                // block saving.
-                const validator = jQuery(form).data('validator');
-                if (validator) {
-                    validator.settings.ignore = ':hidden, .lookup-panel :input';
-                }
-            }
-
-            // Pressing Save would otherwise blur the field being edited first, and its validation
-            // message can shift the (vertically centered) dialog so the button moves out from
-            // under the pointer before mouseup and the click never lands. Keeping focus where it
-            // is avoids the shift; the submit handler then validates every field anyway.
-            form.querySelector('button[type="submit"]')?.addEventListener('mousedown', (event) => event.preventDefault());
-            bindLookupPanel(form);
-            form.querySelectorAll('select[data-credit-picker]').forEach(initCreditPicker);
-        }
-
-        const fileInput = modalContent.querySelector('input[type="file"]');
-        const preview = document.getElementById('movie-form-preview');
-        fileInput?.addEventListener('change', () => {
-            const file = fileInput.files && fileInput.files[0];
-            if (file && preview) {
-                preview.src = URL.createObjectURL(file);
-            }
-        });
-
-        // An external poster URL previews too, unless an uploaded file is chosen or already saved
-        // (uploads take display priority, see MoviePosterResolver).
-        const posterUrlInput = form?.querySelector('[name="PosterUrl"]');
-        posterUrlInput?.addEventListener('change', () => updatePosterPreview(form));
-
-        // Details (View) modal: lazily fetch the trailer <iframe> only once "Watch Trailer" is clicked.
-        const trailerBtn = modalContent.querySelector('.movie-trailer-btn');
-        trailerBtn?.addEventListener('click', onTrailerButtonClick);
     }
 
     async function onTrailerButtonClick(event) {
@@ -122,6 +69,44 @@
         }
     }
 
+    // --- Add/Edit page: the movie form -----------------------------------------------------------
+
+    // Called at the bottom of this file, once every helper below is defined.
+    function bindMovieForm(form) {
+        // The lookup panel's search boxes aren't part of the movie, so never let them block saving.
+        if (window.jQuery?.validator?.unobtrusive) {
+            jQuery.validator.unobtrusive.parse(form);
+            const validator = jQuery(form).data('validator');
+            if (validator) {
+                validator.settings.ignore = ':hidden, .lookup-panel :input';
+            }
+        }
+
+        // jQuery Validate blocks an invalid post by itself; this adds the "Some fields need
+        // attention" banner and puts focus on the first problem. The server re-validates regardless.
+        form.addEventListener('submit', (event) => {
+            if (!validateForm(form)) {
+                event.preventDefault();
+            }
+        });
+
+        bindLookupPanel(form);
+        form.querySelectorAll('select[data-credit-picker]').forEach(initCreditPicker);
+
+        const fileInput = form.querySelector('input[type="file"]');
+        const preview = document.getElementById('movie-form-preview');
+        fileInput?.addEventListener('change', () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (file && preview) {
+                preview.src = URL.createObjectURL(file);
+            }
+        });
+
+        // An external poster URL previews too, unless an uploaded file is chosen or already saved
+        // (uploads take display priority, see MoviePosterResolver).
+        form.querySelector('[name="PosterUrl"]')?.addEventListener('change', () => updatePosterPreview(form));
+    }
+
     function hasUploadedPoster(form) {
         const fileInput = form.querySelector('input[type="file"]');
         return !!(fileInput?.files?.length || form.querySelector('[name="PosterImagePath"]')?.value);
@@ -135,7 +120,7 @@
         }
     }
 
-    // Client-side check before posting; the server re-validates everything regardless (422).
+    // Client-side check before posting; the server re-validates everything regardless.
     function validateForm(form) {
         const $ = window.jQuery;
         if (!$?.validator || $(form).valid()) {
@@ -148,41 +133,6 @@
         }
         form.querySelector('.input-validation-error')?.focus();
         return false;
-    }
-
-    async function onFormSubmit(event) {
-        event.preventDefault();
-        const form = event.target;
-        if (!validateForm(form)) {
-            return;
-        }
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn?.setAttribute('disabled', 'disabled');
-
-        try {
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-
-            const contentType = response.headers.get('content-type') || '';
-
-            if (response.ok && contentType.includes('application/json')) {
-                movieModal.hide();
-                await refreshCatalog();
-                await swal({ toast: true, position: 'top-end', icon: 'success', title: 'Movie saved', showConfirmButton: false, timer: 2000, timerProgressBar: true });
-                return;
-            }
-
-            // 422 Unprocessable Entity: the server re-rendered the form with validation messages.
-            setModalContent(await response.text());
-            bindModalContent();
-        } catch (err) {
-            await swal({ icon: 'error', title: 'Something went wrong', text: 'Could not save the movie. Please try again.' });
-        } finally {
-            submitBtn?.removeAttribute('disabled');
-        }
     }
 
     // --- Director / Studio pickers: searchable, with "Add ..." (MovieOptionsController) ----------
@@ -501,25 +451,13 @@
         refreshCatalog();
     });
 
-    // --- Create/Edit/View delegated clicks -----------------------------------------------------
+    // --- View/Delete delegated clicks (catalog) --------------------------------------------------
 
     document.addEventListener('click', (event) => {
-        // Delegated (like the row actions below) so it keeps working if the toolbar is re-rendered.
-        if (event.target.closest('.movie-create-btn')) {
-            loadModal('/Movies/Create');
-            return;
-        }
-
-        const editBtn = event.target.closest('.movie-edit-btn');
-        if (editBtn) {
-            // From inside the View modal this swaps the modal's content in place.
-            loadModal(`/Movies/Edit/${editBtn.dataset.id}`);
-            return;
-        }
-
+        // Delegated so they keep working after the catalog is re-rendered by a search.
         const viewBtn = event.target.closest('.movie-view-btn');
         if (viewBtn) {
-            loadModal(`/Movies/Details/${viewBtn.dataset.id}`);
+            openDetails(viewBtn.dataset.id);
             return;
         }
 
@@ -619,5 +557,18 @@
             setPendingDelete(id, false);
             await swal({ icon: 'error', title: 'Could not delete the movie.' });
         }
+    }
+
+    // --- Page start-up -------------------------------------------------------------------------
+
+    const movieForm = document.getElementById('movie-form');
+    if (movieForm) {
+        bindMovieForm(movieForm);
+    }
+
+    // "Movie added/saved" after the Add/Edit page redirects back to the catalog.
+    const flash = document.getElementById('movie-flash');
+    if (flash) {
+        swal({ toast: true, position: 'top-end', icon: 'success', title: flash.dataset.message, showConfirmButton: false, timer: 2500, timerProgressBar: true });
     }
 })();
