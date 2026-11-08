@@ -1,0 +1,11 @@
+@model decimal
+
+@* Read-only star rating: five stars, each full, half or empty for a 0-5 rating in half-star steps
+   (4.5 = four full stars and a half). The number is read out for screen readers. *@
+<span class="stars" role="img" aria-label="@Model.ToString("0.#") out of 5 stars">
+    @for (var star = 1; star <= 5; star++)
+    {
+        var icon = Model >= star ? "fa-star" : Model >= star - 0.5m ? "fa-star-half-stroke" : "fa-star star-empty";
+        <i class="fa-solid @icon" aria-hidden="true"></i>
+    }
+</span>

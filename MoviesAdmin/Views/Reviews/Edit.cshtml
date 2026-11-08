@@ -15,6 +15,12 @@
     </div>
 </div>
 
+@section Styles {
+    <link rel="stylesheet" href="~/lib/quill/dist/quill.snow.css" />
+}
+
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/quill/dist/quill.js"></script>
+    <script src="~/js/reviews.js" asp-append-version="true"></script>
 }

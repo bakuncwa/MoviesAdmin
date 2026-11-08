@@ -14,9 +14,6 @@
 }
 else if (!User.IsInRole(Roles.Administrator))
 {
-    var count = Model.Movies.Count;
-    <p class="catalog-count">@count @(count == 1 ? "film" : "films")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
-
     <div class="poster-grid">
         @foreach (var movie in Model.Movies)
         {

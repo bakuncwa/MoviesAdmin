@@ -1,7 +1,9 @@
 @model MoviesAdmin.ViewModels.Reviews.ReviewFormViewModel
 
 @* Shared Create/Edit fields. Two submit buttons: "Save draft" keeps the review editable,
-   "Publish" (name="submit" value="publish") locks it for good, so it asks for confirmation. *@
+   "Publish" (name="submit" value="publish") locks it for good, so it asks for confirmation.
+   The star picker and the rich-text editor are wired up by wwwroot/js/reviews.js; each writes
+   into a hidden input (Rating, Text) that is what actually posts. *@
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -22,23 +24,32 @@
 </div>
 
 <div class="mb-3">
-    <label asp-for="Rating" class="form-label"></label>
-    <select asp-for="Rating" class="form-select" style="max-width: 12rem;">
-        <option value="">Choose...</option>
-        @for (var stars = 5; stars >= 0; stars--)
-        {
-            <option value="@stars">@stars / 5</option>
-        }
-    </select>
+    <label class="form-label" id="rating-label">Rating (out of 5)</label>
+    <div class="d-flex flex-wrap align-items-center gap-3">
+        @* Click the left or right half of a star for a half or full star; arrow keys move by half a star. *@
+        <div class="star-picker" role="slider" tabindex="0" aria-labelledby="rating-label"
+             aria-valuemin="0" aria-valuemax="5" aria-valuenow="@(Model.Rating?.ToString("0.#") ?? "")">
+            @for (var star = 1; star <= 5; star++)
+            {
+                <i class="fa-solid fa-star star-empty" data-star="@star" aria-hidden="true"></i>
+            }
+        </div>
+        <span class="star-picker-value fw-semibold" aria-live="polite"></span>
+        <button type="button" class="btn btn-link btn-sm p-0 star-picker-zero">Give 0 stars</button>
+    </div>
+    <input type="hidden" asp-for="Rating" />
     <span asp-validation-for="Rating" class="text-danger"></span>
 </div>
 
 <div class="mb-3">
-    <label asp-for="Text" class="form-label"></label>
-    <textarea asp-for="Text" class="form-control" rows="8" maxlength="1000" id="review-text"></textarea>
-    <div class="d-flex justify-content-between">
+    <label class="form-label" id="text-label">Review</label>
+    <div class="review-editor">
+        <div id="review-editor" aria-labelledby="text-label"></div>
+    </div>
+    <input type="hidden" asp-for="Text" />
+    <div class="d-flex justify-content-between mt-1">
         <span asp-validation-for="Text" class="text-danger"></span>
-        <small class="text-body-secondary ms-auto"><span id="review-text-count">@Model.Text.Length</span> / 1000</small>
+        <small class="text-body-secondary ms-auto"><span id="review-text-count">0</span> / @MoviesAdmin.Services.ReviewText.ReviewHtml.MaxTextLength</small>
     </div>
 </div>
 
@@ -52,11 +63,3 @@
     </button>
     <a asp-action="Index" class="btn btn-link text-body-secondary">Cancel</a>
 </div>
-
-<script>
-    (() => {
-        const text = document.getElementById('review-text');
-        const count = document.getElementById('review-text-count');
-        text.addEventListener('input', () => { count.textContent = text.value.length; });
-    })();
-</script>

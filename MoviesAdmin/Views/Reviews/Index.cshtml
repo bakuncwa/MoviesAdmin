@@ -1,4 +1,5 @@
 @model IEnumerable<MoviesAdmin.Models.Review>
+@using MoviesAdmin.ViewModels.Movies
 
 @{
     ViewData["Title"] = "My Reviews";
@@ -21,34 +22,49 @@
 }
 else
 {
-    <table class="table align-middle">
-        <thead>
-            <tr>
-                <th>Movie</th>
-                <th>Rating</th>
-                <th>Status</th>
-                <th>Last updated</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
+    <div class="table-responsive catalog-list-view">
+        <table class="table table-hover align-middle catalog-table mb-0">
+            <thead>
                 <tr>
-                    <td>@item.Movie.Title</td>
-                    <td><span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@item.Rating / 5</span></td>
-                    <td><partial name="_StatusBadge" model="item" /></td>
-                    <td>@((item.PublishedAt ?? item.UpdatedAt ?? item.CreatedAt).ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</td>
-                    <td class="text-end">
-                        <a asp-action="Details" asp-route-id="@item.Id">Details</a>
-                        @if (!item.IsPublished)
-                        {
-                            <text> | </text><a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                            <text> | </text><a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                        }
-                    </td>
+                    <th scope="col" style="width: 64px;">Poster</th>
+                    <th scope="col">Movie</th>
+                    <th scope="col">Rating</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Last updated</th>
+                    <th scope="col" class="text-end">Actions</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <img src="@MoviePosterResolver.Resolve(item.Movie)" alt="@item.Movie.Title poster" class="catalog-table-thumb" loading="lazy" />
+                        </td>
+                        <td class="fw-semibold">@item.Movie.Title</td>
+                        <td class="text-nowrap"><partial name="_Stars" model="item.Rating" /> <span class="ms-1">@item.Rating.ToString("0.#")</span></td>
+                        <td><partial name="_StatusBadge" model="item" /></td>
+                        <td>@((item.PublishedAt ?? item.UpdatedAt ?? item.CreatedAt).ToLocalTime().ToString("MMM d, yyyy h:mm tt"))</td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1" role="group" aria-label="Review actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@item.Id">
+                                    <i class="fa-solid fa-eye me-1" aria-hidden="true"></i>View
+                                </a>
+                                @* Drafts only: requirement 7 locks a review once it's published. *@
+                                @if (!item.IsPublished)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@item.Id">
+                                        <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
+                                    </a>
+                                    <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">
+                                        <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
+                                    </a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }

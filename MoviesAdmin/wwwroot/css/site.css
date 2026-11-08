@@ -1199,3 +1199,142 @@ h1, h2, h3, h4, h5, h6 {
 .ts-wrapper.single.has-items:not(.input-active) .ts-control > input::placeholder {
   color: transparent;
 }
+
+/* Reviews ------------------------------------------------------------------------------------- */
+
+/* Read-only stars (Views/Shared/_Stars.cshtml) and the picker on the review form share a look. */
+.stars,
+.star-picker {
+  display: inline-flex;
+  gap: 0.15rem;
+  color: var(--ma-star);
+}
+
+.stars .star-empty,
+.star-picker .star-empty {
+  color: var(--ma-border);
+  opacity: 0.9;
+}
+
+.star-picker {
+  gap: 0.3rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.6rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.star-picker:focus-visible {
+  outline: 2px solid var(--ma-accent);
+  outline-offset: 2px;
+}
+
+/* The empty stars need to stand out from the page a little more than in read-only lists. */
+.star-picker .star-empty {
+  color: var(--ma-muted);
+  opacity: 0.35;
+}
+
+/* Quill (snow theme) restyled to match the form controls. */
+.review-editor .ql-toolbar.ql-snow,
+.review-editor .ql-container.ql-snow {
+  border-color: var(--ma-border);
+}
+
+.review-editor .ql-toolbar.ql-snow {
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: var(--ma-surface-2);
+}
+
+.review-editor .ql-container.ql-snow {
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: var(--ma-surface);
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.review-editor .ql-editor {
+  min-height: 12rem;
+  color: var(--ma-text);
+}
+
+.review-editor .ql-editor.ql-blank::before {
+  color: var(--ma-muted);
+  font-style: normal;
+}
+
+.review-editor .ql-snow .ql-stroke {
+  stroke: var(--ma-text);
+}
+
+.review-editor .ql-snow .ql-fill,
+.review-editor .ql-snow .ql-picker-label {
+  fill: var(--ma-text);
+  color: var(--ma-text);
+}
+
+.review-editor .ql-snow button:hover .ql-stroke,
+.review-editor .ql-snow button.ql-active .ql-stroke,
+.review-editor .ql-snow .ql-picker-label:hover .ql-stroke,
+.review-editor .ql-snow .ql-picker-label.ql-active .ql-stroke {
+  stroke: var(--ma-accent);
+}
+
+.review-editor .ql-snow button:hover .ql-fill,
+.review-editor .ql-snow button.ql-active .ql-fill {
+  fill: var(--ma-accent);
+}
+
+.review-editor .ql-snow .ql-picker-options {
+  background: var(--ma-surface);
+  border-color: var(--ma-border);
+}
+
+/* A saved review (sanitized HTML from ReviewHtml): Quill's alignment and indent classes need these
+   rules outside the editor, where quill.snow.css isn't loaded. */
+.review-body > :last-child {
+  margin-bottom: 0;
+}
+
+.review-body blockquote {
+  margin: 0 0 1rem;
+  padding-left: 1rem;
+  border-left: 4px solid var(--ma-border);
+  color: var(--ma-muted);
+}
+
+.review-body .ql-align-center { text-align: center; }
+.review-body .ql-align-right { text-align: right; }
+.review-body .ql-align-justify { text-align: justify; }
+
+.review-body .ql-indent-1 { padding-left: 3em; }
+.review-body .ql-indent-2 { padding-left: 6em; }
+.review-body .ql-indent-3 { padding-left: 9em; }
+.review-body .ql-indent-4 { padding-left: 12em; }
+.review-body .ql-indent-5 { padding-left: 15em; }
+.review-body .ql-indent-6 { padding-left: 18em; }
+.review-body .ql-indent-7 { padding-left: 21em; }
+.review-body .ql-indent-8 { padding-left: 24em; }
+
+/* Review Details/Delete: the movie's poster beside the review. */
+.review-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.review-detail-poster {
+  flex: none;
+  width: 120px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 575.98px) {
+  .review-detail {
+    flex-direction: column;
+  }
+}

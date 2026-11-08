@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace MoviesAdmin.Models
 {
@@ -26,13 +27,15 @@ namespace MoviesAdmin.Models
         [StringLength(200)]
         public string? CriticName { get; set; }
 
-        // Rating out of 5; feeds Movie.AverageRating once published.
+        // Rating out of 5 in half-star steps (0, 0.5, 1 ... 5); feeds Movie.AverageRating once published.
         [Range(0, 5, ErrorMessage = "Rating must be between {1} and {2}.")]
-        public int Rating { get; set; }
+        [Precision(2, 1)]
+        public decimal Rating { get; set; }
 
-        // The review itself.
+        // The review itself, as sanitized HTML from the review editor (see ReviewHtml). Its visible
+        // text is at most ReviewHtml.MaxTextLength (1000) characters, checked by ReviewsController;
+        // the column itself is unbounded because the formatting markup adds to the length.
         [Required(ErrorMessage = "Review text is required.")]
-        [StringLength(1000, ErrorMessage = "Review text can be at most {1} characters.")]
         [Display(Name = "Review")]
         public string Text { get; set; } = string.Empty;
 

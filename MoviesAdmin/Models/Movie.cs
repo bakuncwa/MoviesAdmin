@@ -84,6 +84,6 @@ namespace MoviesAdmin.Models
 
         // Rotten-Tomatoes-style aggregate; derived from Reviews rather than stored, so it can never drift.
         [NotMapped]
-        public double? AverageRating => PublishedReviewCount == 0 ? null : Reviews.Where(r => r.IsPublished).Average(r => r.Rating);
+        public double? AverageRating => PublishedReviewCount == 0 ? null : Reviews.Where(r => r.IsPublished).Average(r => (double)r.Rating);
     }
 }

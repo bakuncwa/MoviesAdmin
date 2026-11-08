@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
+using MoviesAdmin.Services.ReviewText;
 using MoviesAdmin.ViewModels.Reviews;
 
 namespace MoviesAdmin.Controllers
@@ -76,6 +77,7 @@ namespace MoviesAdmin.Controllers
         public async Task<IActionResult> Create(ReviewFormViewModel model, string? submit)
         {
             var userId = User.GetUserId();
+            CleanReviewText(model);
 
             if (model.MovieId.HasValue)
             {
@@ -102,7 +104,7 @@ namespace MoviesAdmin.Controllers
                 CreatedBy = userId,
                 CriticName = User.Identity?.Name,
                 Rating = model.Rating!.Value,
-                Text = model.Text.Trim(),
+                Text = model.Text,
                 IsPublished = publish,
                 PublishedAt = publish ? DateTime.UtcNow : null
             };
@@ -163,13 +165,14 @@ namespace MoviesAdmin.Controllers
             model.MovieId = review.MovieId;
             model.MovieTitle = review.Movie.Title;
             ModelState.Remove(nameof(model.MovieId));
+            CleanReviewText(model);
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
             review.Rating = model.Rating!.Value;
-            review.Text = model.Text.Trim();
+            review.Text = model.Text;
             review.UpdatedAt = DateTime.UtcNow;
 
             var publish = submit == PublishAction;
@@ -250,6 +253,26 @@ namespace MoviesAdmin.Controllers
 
             TempData["ReviewMessage"] = "Draft deleted.";
             return RedirectToAction(nameof(Index));
+        }
+
+        // Sanitizes the editor's HTML in place (only Quill's formatting survives) and checks the
+        // requirement's limits on what the reader actually sees: some text, at most 1000 characters.
+        private void CleanReviewText(ReviewFormViewModel model)
+        {
+            model.Text = ReviewHtml.Sanitize(model.Text);
+            var length = ReviewHtml.VisibleLength(model.Text);
+            if (ModelState.GetFieldValidationState(nameof(model.Text)) == Microsoft.AspNetCore.Mvc.ModelBinding.ModelValidationState.Invalid)
+            {
+                // [Required] already reported a blank post; don't repeat it.
+            }
+            else if (length == 0)
+            {
+                ModelState.AddModelError(nameof(model.Text), "Review text is required.");
+            }
+            else if (length > ReviewHtml.MaxTextLength)
+            {
+                ModelState.AddModelError(nameof(model.Text), $"Review text can be at most {ReviewHtml.MaxTextLength} characters (this one has {length}).");
+            }
         }
 
         // Edit/Delete/Publish on a published review: back to its Details page with an explanation.
