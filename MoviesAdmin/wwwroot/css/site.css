@@ -631,6 +631,113 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.5;
 }
 
+/* Poster grid (critics) ----------------------------------------------------------------------- */
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 16vw, 190px), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.movie-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  animation: card-in 0.4s ease-out both;
+}
+
+.movie-card:nth-child(n + 2) { animation-delay: 0.03s; }
+.movie-card:nth-child(n + 4) { animation-delay: 0.06s; }
+.movie-card:nth-child(n + 8) { animation-delay: 0.09s; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The poster is the "view details" button. */
+.movie-card-poster {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--ma-surface-2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.movie-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.movie-card-poster:hover,
+.movie-card-poster:focus-visible {
+  transform: translateY(-6px);
+  box-shadow: var(--ma-shadow), 0 0 0 2px var(--ma-accent);
+}
+
+.movie-card-poster:hover img,
+.movie-card-poster:focus-visible img {
+  transform: scale(1.07);
+}
+
+.movie-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0.7rem 0.15rem 0;
+}
+
+.movie-card-title {
+  margin: 0;
+  font-size: 0.975rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0;
+  color: var(--ma-muted);
+  font-size: 0.8rem;
+}
+
+.movie-card-meta span + span:not(.rating-badge)::before {
+  content: "•";
+  margin-right: 0.5rem;
+  opacity: 0.5;
+}
+
+/* Average of the published reviews: star, then the number. margin-top: auto keeps the score and
+   the Review button lined up along the bottom of each grid row, whatever the title length. */
+.movie-card-score {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: auto 0 0.6rem;
+  padding-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.movie-card-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ma-star);
+  font-weight: 700;
+}
+
 /* Records table ------------------------------------------------------------------------------- */
 
 .catalog-list-view {

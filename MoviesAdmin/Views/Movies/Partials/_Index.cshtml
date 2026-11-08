@@ -1,8 +1,9 @@
 @model MoviesAdmin.ViewModels.Movies.MovieCatalogViewModel
 
-@* The admin records table. Rendered by GET Movies (Index.cshtml, initial page load) and by
-   GET Movies/Search (async toolbar), so the client can swap #movie-catalog's innerHTML with the
-   same markup either way. Every row carries data-movie-id so the delete Undo window can dim it. *@
+@* The catalog: a records table for administrators, a poster grid for critics. Rendered by GET
+   Movies (Index.cshtml, initial page load) and by GET Movies/Search (async toolbar), so the client
+   can swap #movie-catalog's innerHTML with the same markup either way. Every row carries
+   data-movie-id so the delete Undo window can dim it. *@
 
 @if (Model.Movies.Count == 0)
 {
@@ -11,10 +12,52 @@
         <p class="mb-0">@(Model.Query.HasFilters ? "No movies match these filters." : "No movies yet.")</p>
     </div>
 }
+else if (!User.IsInRole(Roles.Administrator))
+{
+    var count = Model.Movies.Count;
+    <p class="catalog-count">@count @(count == 1 ? "film" : "films")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
+
+    <div class="poster-grid">
+        @foreach (var movie in Model.Movies)
+        {
+            <article class="movie-card" data-movie-id="@movie.Id">
+                @* The poster opens GET Movies/Details/5 in the shared modal. *@
+                <button type="button" class="movie-card-poster movie-view-btn" data-id="@movie.Id" title="View details">
+                    <img src="@movie.DisplayImageUrl" alt="@movie.Title poster" loading="lazy" />
+                </button>
+                <div class="movie-card-body">
+                    <h3 class="movie-card-title" title="@movie.Title">@movie.Title</h3>
+                    <p class="movie-card-meta">
+                        <span>@movie.ReleaseDate.Year</span>
+                        @if (movie.RuntimeMinutes.HasValue)
+                        {
+                            <span>@movie.RuntimeText</span>
+                        }
+                        <span class="rating-badge">@movie.AudienceRatingName</span>
+                    </p>
+                    <p class="movie-card-score">
+                        @if (movie.AverageRating.HasValue)
+                        {
+                            <span class="movie-card-stars" title="Average of @movie.ReviewCount published @(movie.ReviewCount == 1 ? "review" : "reviews")"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                            <span class="text-body-secondary">(@movie.ReviewCount)</span>
+                        }
+                        else
+                        {
+                            <span class="text-body-secondary">No reviews yet</span>
+                        }
+                    </p>
+                    @* Write a review, or open this critic's existing one (one review per movie). *@
+                    <a class="btn btn-sm btn-outline-secondary w-100" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
+                        <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review
+                    </a>
+                </div>
+            </article>
+        }
+    </div>
+}
 else
 {
     var count = Model.Movies.Count;
-    var isAdmin = User.IsInRole(Roles.Administrator);
     <p class="catalog-count">@count @(count == 1 ? "record" : "records")@(Model.Query.HasFilters ? " matching" : "") · @Model.Query.SortLabel</p>
 
     <div class="table-responsive catalog-list-view">
@@ -68,34 +111,24 @@ else
                             }
                             else
                             {
-                                    <span class="text-body-secondary">No reviews</span>
-                                }
-                            </td>
-                            <td class="text-end movie-actions-cell">
-                                <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
-                                    @if (!isAdmin)
-                                    {
-                                        @* Critics: write a review (or open theirs, if they already have one). *@
-                                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Reviews" asp-action="Create" asp-route-movieId="@movie.Id">
-                                            <i class="fa-solid fa-pen-nib me-1" aria-hidden="true"></i>Review
-                                        </a>
-                                }
-                                else
-                                {
-                                    <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
-                                        <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
-                                    </button>
-                                    @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
-                                    <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
-                                            data-id="@movie.Id"
-                                            data-title="@movie.Title"
-                                            data-release="@releaseText"
-                                            data-runtime="@movie.RuntimeText"
-                                            data-rating="@movie.AudienceRatingName"
-                                            data-genres="@genresText">
-                                        <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
-                                    </button>
-                                }
+                                <span class="text-body-secondary">No reviews</span>
+                            }
+                        </td>
+                        <td class="text-end movie-actions-cell">
+                            <div class="d-inline-flex gap-1" role="group" aria-label="Row actions">
+                                <button type="button" class="btn btn-sm btn-outline-secondary movie-edit-btn" data-id="@movie.Id">
+                                    <i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Edit
+                                </button>
+                                @* The SweetAlert confirmation is built from these data-* attributes client-side. *@
+                                <button type="button" class="btn btn-sm btn-outline-danger movie-delete-btn"
+                                        data-id="@movie.Id"
+                                        data-title="@movie.Title"
+                                        data-release="@releaseText"
+                                        data-runtime="@movie.RuntimeText"
+                                        data-rating="@movie.AudienceRatingName"
+                                        data-genres="@genresText">
+                                    <i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete
+                                </button>
                             </div>
                         </td>
                     </tr>
