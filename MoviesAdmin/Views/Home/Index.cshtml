@@ -2,15 +2,26 @@
     ViewData["Title"] = "Home";
     var isAdmin = User.IsInRole(Roles.Administrator);
     var isCritic = User.IsInRole(Roles.Critic);
+    // A critic (who isn't also an administrator) gets the critic-facing hero; everyone else the admin one.
+    var criticPortal = isCritic && !isAdmin;
 }
 
 @* The only page open to signed-out visitors (see HomeController); every other page requires login. *@
 <section class="hero hero-landing">
     <div class="hero-inner">
         <div class="hero-content">
-            <span class="hero-eyebrow"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i>Management portal</span>
-            <h1 class="hero-title">Reelbox<span class="brand-accent">Admin</span></h1>
-            <p class="hero-synopsis">The projection booth behind Reelbox. Administrators curate the catalog: posters, trailers, directors, studios, and genres. Movie critics browse it and write the reviews that appear on each film.</p>
+            @if (criticPortal)
+            {
+                <span class="hero-eyebrow"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i>Critic portal</span>
+                <h1 class="hero-title">Reelbox<span class="brand-accent">Critic</span></h1>
+                <p class="hero-synopsis">Your screening room at Reelbox. Browse the full catalog and write one review per film: rate it out of 5, keep it as a draft while you refine it, and publish when it's ready. Published reviews are final and count toward each film's rating.</p>
+            }
+            else
+            {
+                <span class="hero-eyebrow"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i>Management portal</span>
+                <h1 class="hero-title">Reelbox<span class="brand-accent">Admin</span></h1>
+                <p class="hero-synopsis">The projection booth behind Reelbox. Administrators curate the catalog: posters, trailers, directors, studios, and genres. Movie critics browse it and write the reviews that appear on each film.</p>
+            }
             <div class="hero-actions">
                 @if (User.Identity?.IsAuthenticated != true)
                 {
