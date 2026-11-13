@@ -18,6 +18,7 @@ namespace MoviesAdmin.Data
         public DbSet<Director> Directors => Set<Director>();
         public DbSet<Studio> Studios => Set<Studio>();
         public DbSet<Trailer> Trailers => Set<Trailer>();
+        public DbSet<UserSnapshot> UserSnapshots => Set<UserSnapshot>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -90,6 +91,13 @@ namespace MoviesAdmin.Data
                 // Cascade here (unlike Director/Studio): a trailer has no meaning without its
                 // movie, so deleting the movie should take its one trailer row with it.
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // One snapshot row per Auth0 user, updated on each login. The table is named
+            // "UserSnapshot" (singular), as the assignment specifies.
+            builder.Entity<UserSnapshot>()
+                .ToTable("UserSnapshot")
+                .HasIndex(u => u.UserId)
+                .IsUnique();
 
             // --- Reference data (SeedDirectorsStudios, SeedGenresContentRating and
             // GenreAudienceRatingOneToMany migrations) ----

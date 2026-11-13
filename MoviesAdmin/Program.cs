@@ -6,6 +6,7 @@ using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
 using MoviesAdmin.Services.MovieLookup;
 using MoviesAdmin.Services.PosterStorage;
+using MoviesAdmin.Services.UserSnapshots;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,21 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
 {
     options.Domain = auth0Domain;
     options.ClientId = auth0ClientId;
+    // "email" adds the user's email to the id token, for the UserSnapshot table below.
+    options.Scope = "openid profile email";
+    // Every login adds or updates the user's UserSnapshot row (name, email, roles) before the auth
+    // cookie is issued.
+    options.OpenIdConnectEvents = new OpenIdConnectEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            if (context.Principal is not null)
+            {
+                var snapshots = context.HttpContext.RequestServices.GetRequiredService<UserSnapshotService>();
+                await snapshots.RecordLoginAsync(context.Principal);
+            }
+        }
+    };
 });
 
 // Auth0 leaves roles out of the id token by default. The "Add Roles to Token" post-login Action
@@ -79,6 +95,7 @@ builder.Services.AddScoped<IGenreRepository, GenreRepository>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IDirectorRepository, DirectorRepository>();
 builder.Services.AddScoped<IStudioRepository, StudioRepository>();
+builder.Services.AddScoped<UserSnapshotService>();
 // Trailer has no queries beyond plain CRUD, so it resolves through the generic IRepository<T>
 // registration above rather than needing its own ITrailerRepository/TrailerRepository pair.
 
