@@ -1,7 +1,8 @@
 # Reelbox Admin: Movies Admin Application (MVC - ASP.NET)
 
-**Course:** INET2005 - Web Application Programming I
-**Instructor:** Michael Trumbull, Nova Scotia Community College
+**Course:** INET2005 - Web Application Programming I\
+**Instructor:** Michael Trumbull, Nova Scotia Community College\
+**API repository:** [bakuncwa/MoviesAPI](https://github.com/bakuncwa/MoviesAPI)
 
 ## Project Description
 
