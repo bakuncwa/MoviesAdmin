@@ -36,7 +36,7 @@ else if (!User.IsInRole(Roles.Administrator))
                         @if (movie.AverageRating.HasValue)
                         {
                             <span class="movie-card-stars" title="Average of @movie.ReviewCount published @(movie.ReviewCount == 1 ? "review" : "reviews")"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
-                            <span class="text-body-secondary">(@movie.ReviewCount)</span>
+                            <a asp-action="Reviews" asp-route-id="@movie.Id" class="reviews-link small">(@movie.ReviewCount @(movie.ReviewCount == 1 ? "review" : "reviews"))</a>
                         }
                         else
                         {
@@ -110,8 +110,10 @@ else
                         <td>
                             @if (movie.AverageRating.HasValue)
                             {
-                                <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
-                                <span class="text-body-secondary small ms-1">(@movie.ReviewCount)</span>
+                                <a asp-action="Reviews" asp-route-id="@movie.Id" class="reviews-link" title="Read the @movie.ReviewCount published @(movie.ReviewCount == 1 ? "review" : "reviews")">
+                                    <span class="rating-chip"><i class="fa-solid fa-star" aria-hidden="true"></i>@movie.AverageRating.Value.ToString("0.0")</span>
+                                    <span class="small ms-1">@movie.ReviewCount @(movie.ReviewCount == 1 ? "review" : "reviews")</span>
+                                </a>
                             }
                             else
                             {

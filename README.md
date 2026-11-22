@@ -50,6 +50,7 @@
 | # | Requirement | How it's met |
 | --- | --- | --- |
 | 15 | The admin app stores the user's name and email in the database | `UserSnapshot` table (`Models/UserSnapshot.cs`, migration `UserSnapshot`): Auth0 user id (unique), name, email, roles, first/last login. `UserSnapshotService.RecordLoginAsync` adds or updates the row on every login from the OpenID Connect `OnTokenValidated` event in `Program.cs` |
+| UI | Reviews visible in Studio | `GET /Movies/Reviews/{id}` (administrators and critics): every published review of one movie as rows (critic, stars, date, excerpt) that expand to the full text, with Expand all / Collapse all. The review count in the catalog table, the critic poster cards and the movie Details links to it |
 | 16, 17 | API endpoints for all movies, and one movie with its published reviews and their creators' names | [bakuncwa/MoviesAPI](https://github.com/bakuncwa/MoviesAPI): `GET /api/movies` and `GET /api/movies/{id}` (Dapper), which join `Reviews` to `UserSnapshot` on `CreatedBy = UserId` |
 | Stretch | Deploy the admin app and API to Azure | Azure App Service (`reelbox-studio-0350f5`, `reelbox-api-0350f5`, Linux plan `reelbox-plan`), Azure SQL Database (`MoviesAdmin`), Azure Blob Storage for posters (`reelboxposters0350f5`), with Auth0 callback/logout URLs for the deployed host |
 

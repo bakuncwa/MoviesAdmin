@@ -1385,3 +1385,167 @@ button.catalog-title:focus-visible {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--ma-border);
 }
+
+/* Movie reviews page (GET Movies/Reviews/5) ----------------------------------------------------- */
+
+.reviews-link {
+  color: var(--ma-accent);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reviews-link:hover,
+.reviews-link:focus-visible {
+  color: var(--ma-accent-hover);
+  text-decoration: underline;
+}
+
+.movie-reviews-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--ma-surface);
+  border: 1px solid var(--ma-border);
+  border-radius: 1rem;
+}
+
+.movie-reviews-header h1 {
+  font-size: 1.75rem;
+}
+
+.movie-reviews-poster {
+  width: 72px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 0.6rem;
+  flex: none;
+}
+
+.movie-reviews-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.movie-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.review-row {
+  background: var(--ma-surface);
+  border: 1px solid var(--ma-border);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.review-row[open] {
+  border-color: var(--ma-accent);
+}
+
+.review-row > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.review-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-row > summary:hover {
+  background: var(--ma-surface-2);
+}
+
+.review-row > summary:focus-visible {
+  outline: 3px solid var(--ma-accent);
+  outline-offset: -3px;
+}
+
+.review-row-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ma-accent);
+  color: var(--ma-on-accent);
+  font-weight: 700;
+}
+
+.review-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.review-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.review-row-critic {
+  font-weight: 700;
+  color: var(--ma-text);
+}
+
+.review-row-score {
+  color: var(--ma-muted);
+  font-size: 0.9rem;
+}
+
+.review-row-excerpt {
+  color: var(--ma-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-row[open] .review-row-excerpt {
+  display: none;
+}
+
+.review-row-date {
+  color: var(--ma-muted);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.review-row-chevron {
+  color: var(--ma-muted);
+  transition: transform 0.2s ease;
+}
+
+.review-row[open] .review-row-chevron {
+  transform: rotate(180deg);
+}
+
+.review-row-body {
+  padding: 0.25rem 1.1rem 1.1rem calc(1.1rem + 2.4rem + 0.9rem);
+  color: var(--ma-text);
+}
+
+@media (max-width: 576px) {
+  .review-row-date {
+    display: none;
+  }
+
+  .review-row-body {
+    padding-left: 1.1rem;
+  }
+}

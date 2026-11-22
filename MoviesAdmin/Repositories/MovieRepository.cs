@@ -74,5 +74,24 @@ namespace MoviesAdmin.Repositories
                 .Distinct()
                 .OrderByDescending(year => year)
                 .ToListAsync();
+
+        public async Task<List<(Review Review, string CriticName)>> GetPublishedReviewsAsync(int movieId)
+        {
+            // Review.CreatedBy holds the Auth0 user id, which is UserSnapshot.UserId.
+            var rows = await Context.Reviews
+                .Where(r => r.MovieId == movieId && r.IsPublished)
+                .OrderByDescending(r => r.PublishedAt)
+                .ThenByDescending(r => r.Id)
+                .Select(r => new
+                {
+                    Review = r,
+                    SnapshotName = Context.UserSnapshots.Where(u => u.UserId == r.CreatedBy).Select(u => u.Name).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return rows
+                .Select(x => (x.Review, x.SnapshotName ?? x.Review.CriticName ?? "Critic"))
+                .ToList();
+        }
     }
 }

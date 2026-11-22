@@ -61,7 +61,19 @@
                     </div>
                     <div>
                         <dt>Published reviews</dt>
-                        <dd>@Model.ReviewCount</dd>
+                        <dd>
+                            @if (Model.ReviewCount > 0)
+                            {
+                                @* GET Movies/Reviews/5: the reviews themselves, as expandable rows. *@
+                                <a asp-action="Reviews" asp-route-id="@Model.Id" class="reviews-link">
+                                    @Model.ReviewCount @(Model.ReviewCount == 1 ? "review" : "reviews")<i class="fa-solid fa-arrow-right ms-1" aria-hidden="true"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                @:0
+                            }
+                        </dd>
                     </div>
                     @if (!Model.AverageRating.HasValue)
                     {

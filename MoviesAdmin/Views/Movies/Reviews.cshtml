@@ -1,0 +1,94 @@
+@model MoviesAdmin.ViewModels.Movies.MovieReviewsViewModel
+
+@{
+    ViewData["Title"] = $"Reviews · {Model.Title}";
+    var count = Model.Reviews.Count;
+    var reviewWord = count == 1 ? "review" : "reviews";
+}
+
+@* GET Movies/Reviews/5: every published review of one movie (drafts are never shown here), opened
+   from the review count in the catalog or the movie's Details. Each row is a native <details>, so
+   it expands and collapses with the mouse or keyboard; the toolbar opens or closes them all. *@
+
+<p class="mb-3">
+    <a asp-action="Index"><i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Back to Movies</a>
+</p>
+
+<section class="movie-reviews-header">
+    <img src="@Model.PosterUrl" alt="@Model.Title poster" class="movie-reviews-poster" />
+    <div class="flex-grow-1">
+        <h1 class="mb-1">@Model.Title <span class="text-body-secondary fw-normal">(@Model.ReleaseYear)</span></h1>
+        @if (Model.AverageRating.HasValue)
+        {
+            <p class="mb-0 d-flex align-items-center gap-2 flex-wrap">
+                <partial name="_Stars" model="(decimal)Math.Round(Model.AverageRating.Value * 2) / 2" />
+                <span class="fw-semibold">@Model.AverageRating.Value.ToString("0.0") / 5</span>
+                <span class="text-body-secondary">· @count published @reviewWord</span>
+            </p>
+        }
+        else
+        {
+            <p class="mb-0 text-body-secondary">No published reviews yet</p>
+        }
+    </div>
+</section>
+
+@if (count == 0)
+{
+    <div class="catalog-empty">
+        <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
+        <p class="mb-0">No critic has published a review of this movie yet.</p>
+    </div>
+}
+else
+{
+    <div class="movie-reviews-toolbar">
+        <span class="text-body-secondary">@count published @reviewWord, newest first</span>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-reviews-toggle="open">
+                <i class="fa-solid fa-angles-down me-1" aria-hidden="true"></i>Expand all
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-reviews-toggle="close">
+                <i class="fa-solid fa-angles-up me-1" aria-hidden="true"></i>Collapse all
+            </button>
+        </div>
+    </div>
+
+    <div class="movie-reviews-list">
+        @foreach (var review in Model.Reviews)
+        {
+            <details class="review-row" id="review-@review.Id">
+                <summary>
+                    <span class="review-row-avatar" aria-hidden="true">@review.Initial</span>
+                    <span class="review-row-main">
+                        <span class="review-row-top">
+                            <span class="review-row-critic">@review.CriticName</span>
+                            <partial name="_Stars" model="review.Rating" />
+                            <span class="review-row-score">@review.Rating.ToString("0.#") / 5</span>
+                        </span>
+                        <span class="review-row-excerpt">@review.Excerpt</span>
+                    </span>
+                    <span class="review-row-date">
+                        @(review.PublishedAt.HasValue ? review.PublishedAt.Value.ToLocalTime().ToString("MMM d, yyyy") : "")
+                    </span>
+                    <i class="fa-solid fa-chevron-down review-row-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="review-row-body review-body">
+                    @Html.Raw(review.Html)
+                </div>
+            </details>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Expand all / Collapse all for the review rows.
+        document.querySelectorAll('[data-reviews-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const open = button.dataset.reviewsToggle === 'open';
+                document.querySelectorAll('.movie-reviews-list details').forEach((row) => { row.open = open; });
+            });
+        });
+    </script>
+}

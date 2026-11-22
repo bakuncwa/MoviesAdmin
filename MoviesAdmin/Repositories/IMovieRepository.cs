@@ -13,6 +13,10 @@ namespace MoviesAdmin.Repositories
 
         // Distinct release years in the catalog, newest first, for the year filter dropdown.
         Task<List<int>> GetReleaseYearsAsync();
+
+        // A movie's published reviews (drafts excluded), newest first, each with its critic's name
+        // from the UserSnapshot table (falling back to the name saved on the review).
+        Task<List<(Review Review, string CriticName)>> GetPublishedReviewsAsync(int movieId);
     }
 
     // Bound by name from the query string (?sort=TitleAsc), so renaming a member breaks saved links.

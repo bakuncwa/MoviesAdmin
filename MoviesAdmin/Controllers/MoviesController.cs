@@ -338,6 +338,22 @@ namespace MoviesAdmin.Controllers
             return PartialView("Partials/_Details", MovieDetailsViewModel.FromEntity(movie));
         }
 
+        // GET: Movies/Reviews/5
+        // Every published review of one movie (drafts excluded), each with its critic's name, as rows
+        // that expand to the full text. Open to administrators and critics alike.
+        [HttpGet]
+        public async Task<IActionResult> Reviews(int id)
+        {
+            var movie = await _movieRepository.GetByIdWithDetailsAsync(id);
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            var reviews = await _movieRepository.GetPublishedReviewsAsync(id);
+            return View(MovieReviewsViewModel.From(movie, reviews));
+        }
+
         // GET: Movies/Trailer/5
         // Lazily loads the trailer <iframe> only when the admin clicks "Watch Trailer" in the
         // Details modal, rather than embedding a YouTube player for every row up front.
