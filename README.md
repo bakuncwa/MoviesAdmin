@@ -1,5 +1,8 @@
 # Reelbox Admin: Movies Admin Application (MVC - ASP.NET)
 
+**Live admin app:** [reelbox-admin-0350f5.azurewebsites.net](https://reelbox-admin-0350f5.azurewebsites.net)\
+**Live API:** [reelbox-api-0350f5.azurewebsites.net/api/movies](https://reelbox-api-0350f5.azurewebsites.net/api/movies)
+
 **Course:** INET2005 - Web Application Programming I\
 **Instructor:** Michael Trumbull, Nova Scotia Community College\
 **API repository:** [bakuncwa/MoviesAPI](https://github.com/bakuncwa/MoviesAPI)
@@ -41,6 +44,14 @@
 | 12 | Roles `administrator` and `critic` | `Roles.cs`; role claim mapped from the Auth0 post-login Action (`Auth0:RolesClaim`) |
 | 13 | Administrators CRUD movie data | `[Authorize(Roles = Roles.Administrator)]` on Movies Create/Edit/Delete, Genres, AudienceRatings, MovieLookup, MovieOptions |
 | 14 | Critics read all movies, one review per movie, only see/modify their own | `MoviesController` readable by both roles; `ReviewsController` is critic-only and every query filters on `CreatedBy = User.GetUserId()`; unique index on (`MovieId`, `CreatedBy`) |
+
+## Sprint 3 Requirements
+
+| # | Requirement | How it's met |
+| --- | --- | --- |
+| 15 | The admin app stores the user's name and email in the database | `UserSnapshot` table (`Models/UserSnapshot.cs`, migration `UserSnapshot`): Auth0 user id (unique), name, email, roles, first/last login. `UserSnapshotService.RecordLoginAsync` adds or updates the row on every login from the OpenID Connect `OnTokenValidated` event in `Program.cs` |
+| 16, 17 | API endpoints for all movies, and one movie with its published reviews and their creators' names | [bakuncwa/MoviesAPI](https://github.com/bakuncwa/MoviesAPI): `GET /api/movies` and `GET /api/movies/{id}` (Dapper), which join `Reviews` to `UserSnapshot` on `CreatedBy = UserId` |
+| Stretch | Deploy the admin app and API to Azure | Azure App Service (`reelbox-admin-0350f5`, `reelbox-api-0350f5`, Linux plan `reelbox-plan`), Azure SQL Database (`MoviesAdmin`), Azure Blob Storage for posters (`reelboxposters0350f5`), with Auth0 callback/logout URLs for the deployed host |
 
 ## Technology Stack
 
