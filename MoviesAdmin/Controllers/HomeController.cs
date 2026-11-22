@@ -27,5 +27,15 @@ namespace MoviesAdmin.Controllers
         {
             return View();
         }
+
+        // Home/Error
+        // Where UseExceptionHandler("/Home/Error") in Program.cs sends unhandled exceptions outside
+        // Development. Open to everyone (a failed login has no signed-in user) and never cached.
+        [AllowAnonymous]
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
     }
 }

@@ -1,6 +1,6 @@
-# Reelbox Admin: Movies Admin Application (MVC - ASP.NET)
+# Reelbox Studio: Movies Admin Application (MVC - ASP.NET)
 
-**Live admin app:** [reelbox-admin-0350f5.azurewebsites.net](https://reelbox-admin-0350f5.azurewebsites.net)\
+**Live Reelbox Studio (admin + critic portal):** [reelbox-studio-0350f5.azurewebsites.net](https://reelbox-studio-0350f5.azurewebsites.net)\
 **Live API:** [reelbox-api-0350f5.azurewebsites.net/api/movies](https://reelbox-api-0350f5.azurewebsites.net/api/movies)
 
 **Course:** INET2005 - Web Application Programming I\
@@ -9,7 +9,7 @@
 
 ## Project Description
 
-**Reelbox** is a Letterboxd-style movie logging and review site; **Reelbox Admin** (this repository, project name `MoviesAdmin`) is its back office. It's an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies and manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
+**Reelbox** is a Letterboxd-style movie logging and review site; **Reelbox Studio** (this repository, project name `MoviesAdmin`) is its back office: one staff portal where administrators manage movie data and critics write reviews, kept apart by role-based routes. It's an ASP.NET Core MVC web application for managing and reviewing movies, modeled after a Rotten Tomatoes-style review platform. The Admin RBAC viewpoint of the application will allow users to browse movies and manage movie/genre data through an administrative interface. This is an atomic endpoint for Administrator access, and is part of the larger Movie Reviews solution, which includes browsing and submission of ratings/feedbacks/reviews.
 
 ## Screenshots
 
@@ -28,7 +28,7 @@
 | CRUD for movie data stored in a database | `MoviesController` Create/Edit/Delete/Details against SQL Server (Docker) through EF Core and `IMovieRepository` |
 | Movie data: title, synopsis, genre, rating (e.g. PG-13), runtime hours/minutes, release date | `Movie` has `Title`, `Synopsis`, one `Genre` (`GenreId`, 8 seeded genres), one `AudienceRating` (`AudienceRatingId`, seeded G/PG/PG-13/R/NC-17), `RuntimeMinutes` (entered as hours + minutes, shown as e.g. "2h 9m"), and `ReleaseDate` |
 | Summary list of all movies, sorted by release date, with add/view/update/delete | `/Movies` lists every movie sorted by release date (newest first) in an admin records table, with "Add Movie" beside the search bar, Edit/Delete in each row's Actions column, and the title opening the details view |
-| Good design principles and the site's brand | Reelbox Admin brand (green-to-brown film logo mark, forest-green "Admin" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
+| Good design principles and the site's brand | Reelbox Studio brand (green-to-brown film logo mark, forest-green "Studio" accent, Outfit type), consistent earth-tone (green, warm white, brown) light-first theme, responsive layout, accessible labels and focus states |
 
 ## Sprint 2 Requirements
 
@@ -51,7 +51,7 @@
 | --- | --- | --- |
 | 15 | The admin app stores the user's name and email in the database | `UserSnapshot` table (`Models/UserSnapshot.cs`, migration `UserSnapshot`): Auth0 user id (unique), name, email, roles, first/last login. `UserSnapshotService.RecordLoginAsync` adds or updates the row on every login from the OpenID Connect `OnTokenValidated` event in `Program.cs` |
 | 16, 17 | API endpoints for all movies, and one movie with its published reviews and their creators' names | [bakuncwa/MoviesAPI](https://github.com/bakuncwa/MoviesAPI): `GET /api/movies` and `GET /api/movies/{id}` (Dapper), which join `Reviews` to `UserSnapshot` on `CreatedBy = UserId` |
-| Stretch | Deploy the admin app and API to Azure | Azure App Service (`reelbox-admin-0350f5`, `reelbox-api-0350f5`, Linux plan `reelbox-plan`), Azure SQL Database (`MoviesAdmin`), Azure Blob Storage for posters (`reelboxposters0350f5`), with Auth0 callback/logout URLs for the deployed host |
+| Stretch | Deploy the admin app and API to Azure | Azure App Service (`reelbox-studio-0350f5`, `reelbox-api-0350f5`, Linux plan `reelbox-plan`), Azure SQL Database (`MoviesAdmin`), Azure Blob Storage for posters (`reelboxposters0350f5`), with Auth0 callback/logout URLs for the deployed host |
 
 ## Technology Stack
 

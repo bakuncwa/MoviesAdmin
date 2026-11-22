@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Themes Auth0's hosted login page (Universal Login) to match Reelbox: the earth-tone colors from
-# wwwroot/css/site.css, the wordmark at wwwroot/images/reelbox-logo.svg, the "Reelbox Admin" name
+# wwwroot/css/site.css, the wordmark at wwwroot/images/reelbox-logo.svg, the "Reelbox Studio" name
 # instead of the tenant id, and a Reelbox title on the login form. Everything goes through the
 # Auth0 Management API, so re-running it resets the login page to this look.
 #
@@ -12,7 +12,7 @@
 # The logo must be on a public URL, so it defaults to the copy served by the Azure deployment.
 set -euo pipefail
 
-logo_url="${1:-https://reelbox-admin-0350f5.azurewebsites.net/images/reelbox-logo.svg}"
+logo_url="${1:-https://reelbox-studio-0350f5.azurewebsites.net/images/reelbox-logo.svg}"
 
 # Colors from site.css (light theme).
 accent="#2f6b3a"      # --ma-accent, forest green
@@ -32,9 +32,9 @@ fi
 
 echo "Branding the Auth0 login page (logo: $logo_url)"
 
-# Name and logo the login page shows for this tenant ("Log in to Reelbox Admin ...").
+# Name and logo the login page shows for this tenant ("Log in to Reelbox Studio ...").
 auth0 api patch "tenants/settings" --data "{
-  \"friendly_name\": \"Reelbox Admin\",
+  \"friendly_name\": \"Reelbox Studio\",
   \"picture_url\": \"$logo_url\"
 }" >/dev/null
 echo "  tenant name and logo"

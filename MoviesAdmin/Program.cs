@@ -1,6 +1,7 @@
 using Auth0.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using MoviesAdmin.Data;
 using MoviesAdmin.Models;
 using MoviesAdmin.Repositories;
@@ -34,8 +35,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
         "ConnectionStrings:DefaultConnection is not configured. Copy .env.example to .env, then run " +
         "./scripts/setup-secrets.sh (or set the ConnectionStrings__DefaultConnection environment variable).");
 
+// EnableRetryOnFailure retries the brief connection drops Azure SQL Database has from time to time
+// (e.g. "Connection reset by peer" during the SQL login) instead of failing the request.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
 
 // --- Auth0 login ------------------------------------------------------------------------------
 // Auth0 stores the user accounts and roles. Signing in redirects to Auth0's login page, which sends
@@ -65,8 +68,18 @@ builder.Services.AddAuth0WebAppAuthentication(options =>
         {
             if (context.Principal is not null)
             {
-                var snapshots = context.HttpContext.RequestServices.GetRequiredService<UserSnapshotService>();
-                await snapshots.RecordLoginAsync(context.Principal);
+                var services = context.HttpContext.RequestServices;
+                try
+                {
+                    await services.GetRequiredService<UserSnapshotService>().RecordLoginAsync(context.Principal);
+                }
+                catch (Exception ex) when (ex is DbUpdateException or Microsoft.Data.SqlClient.SqlException or RetryLimitExceededException)
+                {
+                    // The snapshot is a copy of the Auth0 profile, so a database hiccup here shouldn't
+                    // block the sign-in; the next login writes it again.
+                    services.GetRequiredService<ILogger<UserSnapshotService>>()
+                        .LogError(ex, "Could not save the UserSnapshot row; continuing the login.");
+                }
             }
         }
     };

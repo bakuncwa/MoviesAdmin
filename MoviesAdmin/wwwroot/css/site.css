@@ -1,4 +1,4 @@
-/* Reelbox Admin earth-tone theme ------------------------------------------------------------
+/* Reelbox Studio earth-tone theme ------------------------------------------------------------
    Forest green, warm white, and brown. Light-first (see the theme bootstrap in _Layout.cshtml /
    site.js), with an espresso-brown dark variant behind the navbar toggle. Everything reads from
    the --ma-* tokens below; Bootstrap's own --bs-* vars are pointed at them so stock components
@@ -24,7 +24,7 @@
   --ma-glass-btn: rgba(74, 52, 36, 0.07);
   --ma-glass-btn-hover: rgba(74, 52, 36, 0.13);
   --ma-shadow: 0 18px 40px rgba(60, 40, 20, 0.14);
-  --ma-hero-fade: linear-gradient(90deg, rgba(250, 247, 240, 0.97) 0%, rgba(250, 247, 240, 0.85) 45%, rgba(250, 247, 240, 0.4) 100%);
+  --ma-hero-fade: rgba(250, 247, 240, 0.88);
   --ma-star: #a86b12;
 }
 
@@ -47,7 +47,7 @@
   --ma-glass-btn: rgba(255, 255, 255, 0.1);
   --ma-glass-btn-hover: rgba(255, 255, 255, 0.18);
   --ma-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  --ma-hero-fade: linear-gradient(90deg, rgba(23, 18, 13, 0.96) 0%, rgba(23, 18, 13, 0.78) 45%, rgba(23, 18, 13, 0.35) 100%);
+  --ma-hero-fade: rgba(23, 18, 13, 0.85);
   --ma-star: #e0a84a;
 }
 
@@ -377,10 +377,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .hero-empty,
 .hero-landing {
-  background:
-    radial-gradient(60% 120% at 100% 0%, var(--ma-accent-soft), transparent 70%),
-    radial-gradient(50% 90% at 0% 100%, var(--ma-earth-soft), transparent 70%),
-    var(--ma-surface);
+  background: var(--ma-surface);
 }
 
 .hero-empty::after,
@@ -947,9 +944,6 @@ button.catalog-title:focus-visible {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 12rem);
-  background:
-    radial-gradient(40% 50% at 20% 20%, var(--ma-accent-soft), transparent 70%),
-    radial-gradient(40% 50% at 80% 80%, var(--ma-earth-soft), transparent 70%);
   border-radius: 1.5rem;
 }
 

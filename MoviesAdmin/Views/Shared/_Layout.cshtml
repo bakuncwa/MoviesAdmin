@@ -1,6 +1,7 @@
 ﻿@{
-    // Critics get their own "Reelbox Critic" branding; administrators and signed-out visitors see "Reelbox Admin".
-    var brandSuffix = User.IsInRole(Roles.Critic) && !User.IsInRole(Roles.Administrator) ? "Critic" : "Admin";
+    // Reelbox Studio is the staff portal for administrators and critics alike; the home page's
+    // eyebrow ("Management portal" / "Critic portal") says which side of it the user is on.
+    var brandSuffix = "Studio";
 }
 <!DOCTYPE html>
 <html lang="en">

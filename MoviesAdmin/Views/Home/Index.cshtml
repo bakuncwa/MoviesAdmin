@@ -2,7 +2,9 @@
     ViewData["Title"] = "Home";
     var isAdmin = User.IsInRole(Roles.Administrator);
     var isCritic = User.IsInRole(Roles.Critic);
-    // A critic (who isn't also an administrator) gets the critic-facing hero; everyone else the admin one.
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    // Signed-out visitors (critics and administrators alike) get one neutral hero; after login a
+    // critic (who isn't also an administrator) gets the critic hero, everyone else the admin one.
     var criticPortal = isCritic && !isAdmin;
 }
 
@@ -10,16 +12,20 @@
 <section class="hero hero-landing">
     <div class="hero-inner">
         <div class="hero-content">
-            @if (criticPortal)
+            @if (!signedIn)
+            {
+                <h1 class="hero-title">Reelbox<span class="brand-accent">Studio</span></h1>
+            }
+            else if (criticPortal)
             {
                 <span class="hero-eyebrow"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i>Critic portal</span>
-                <h1 class="hero-title">Reelbox<span class="brand-accent">Critic</span></h1>
+                <h1 class="hero-title">Reelbox<span class="brand-accent">Studio</span></h1>
                 <p class="hero-synopsis">Your screening room at Reelbox.</p>
             }
             else
             {
                 <span class="hero-eyebrow"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i>Management portal</span>
-                <h1 class="hero-title">Reelbox<span class="brand-accent">Admin</span></h1>
+                <h1 class="hero-title">Reelbox<span class="brand-accent">Studio</span></h1>
                 <p class="hero-synopsis">The projection booth behind Reelbox.</p>
             }
             <div class="hero-actions">
